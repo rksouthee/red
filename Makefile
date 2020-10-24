@@ -1,5 +1,5 @@
 
-CPPFLAGS = /nologo /EHsc /W4
+CPPFLAGS = /nologo /EHsc /W4 /DNOMINMAX
 LINK = link.exe
 LDFLAGS = /NOLOGO
 
