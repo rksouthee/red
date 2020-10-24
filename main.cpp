@@ -112,40 +112,41 @@ static DWORD input_initialize()
 
 
 using Text_position = std::string::size_type;
-static std::string text_buffer =
-R"(Particular unaffected projection sentiments
-no my. Music marry as at cause party worth weeks. Saw how marianne graceful
-dissuade new outlived prospect followed. Uneasy no settle whence nature narrow
-in afraid. At could merit by keeps child. While dried maids on he of linen in.
-
-Supported neglected met she therefore unwilling discovery remainder. Way
-sentiments two indulgence uncommonly own. Diminution to frequently sentiments
-he connection continuing indulgence. An my exquisite conveying up defective.
-Shameless see the tolerably how continued. She enable men twenty elinor points
-appear. Whose merry ten yet was men seven ought balls.
-
-Cottage out enabled was entered greatly prevent message. No procured unlocked
-an likewise. Dear but what she been over gay felt body. Six principles
-advantages and use entreaties decisively. Eat met has dwelling unpacked see
-whatever followed. Court in of leave again as am. Greater sixteen to forming
-colonel no on be. So an advice hardly barton. He be turned sudden engage manner
-spirit.
-
-Started several mistake joy say painful removed reached end. State burst think
-end are its. Arrived off she elderly beloved him affixed noisier yet. An course
-regard to up he hardly. View four has said does men saw find dear shy. Talent
-men wicket add garden.
-
-Written enquire painful ye to offices forming it. Then so does over sent dull
-on. Likewise offended humoured mrs fat trifling answered. On ye position
-greatest so desirous. So wound stood guest weeks no terms up ought. By so these
-am so rapid blush songs begin. Nor but mean time one over.
-
-He unaffected sympathize discovered at no am conviction principles. Girl ham
-very how yet hill four show. Meet lain on he only size.)";
+static std::string text_buffer;
 static Text_position text_position;
 static int text_column;
 static int text_column_desired;
+static Text_position window_line_top;
+
+static DWORD file_open(const char* filename)
+{
+	DWORD last_error = 0;
+	HANDLE file_handle = CreateFileA(filename,
+					 GENERIC_READ | GENERIC_WRITE,
+					 FILE_SHARE_READ,
+					 NULL,
+					 OPEN_EXISTING,
+					 FILE_ATTRIBUTE_NORMAL,
+					 0);
+	if (file_handle != INVALID_HANDLE_VALUE) {
+		DWORD file_size = GetFileSize(file_handle, NULL);
+		if (file_size != INVALID_FILE_SIZE) {
+			DWORD bytes_read;
+			std::string temp_buffer(static_cast<std::string::size_type>(file_size), 0);
+			if (ReadFile(file_handle, &temp_buffer[0], file_size, &bytes_read, NULL)) {
+				text_buffer = std::move(temp_buffer);
+			} else {
+				last_error = GetLastError();
+			}
+		} else {
+			last_error = GetLastError();
+		}
+		CloseHandle(file_handle);
+	} else {
+		last_error = GetLastError();
+	}
+	return last_error;
+}
 
 Text_position find_backward(Text_position p, char c)
 {
@@ -164,12 +165,40 @@ Text_position find_forward(Text_position p, char c)
 	return p;
 }
 
+static void reframe()
+{
+	Text_position cursor_line = find_backward(text_position, '\n');
+	if (cursor_line <= window_line_top) {
+		window_line_top = cursor_line;
+	} else {
+		int rows = 1;
+		Text_position line = cursor_line;
+		while (rows < screen_height) {
+			line = find_backward(line - 1, '\n');
+			if (line == window_line_top)
+				return;
+			++rows;
+		}
+
+		do {
+			window_line_top = find_forward(window_line_top, '\n') + 1;
+			if (window_line_top == line)
+				return;
+			--rows;
+		} while (rows > 0);
+
+		window_line_top = cursor_line;
+	}
+}
+
 static void display_refresh()
 {
+	reframe();
+
 	screen_x = 0;
 	screen_y = 0;
 
-	Text_position start = 0;
+	Text_position start = window_line_top;
 	while (start != text_position) {
 		screen_putchar(text_buffer[start]);
 		++start;
@@ -182,6 +211,9 @@ static void display_refresh()
 		screen_putchar(text_buffer[start]);
 		++start;
 	}
+
+	int index = screen_y * screen_width + screen_x;
+	std::fill(screen_state.begin() + index, screen_state.end(), ' ');
 
 	screen_x = cursor_x;
 	screen_y = cursor_y;
@@ -248,36 +280,41 @@ int main()
 	if (last_error == 0) {
 		last_error = input_initialize();
 		if (last_error == 0) {
-			display_refresh();
-			bool running = true;
-			INPUT_RECORD input_record;
-			DWORD events_read;
-			while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
-				switch (input_record.EventType) {
-				case KEY_EVENT: {
-					const KEY_EVENT_RECORD& key_event = input_record.Event.KeyEvent;
-					if (key_event.bKeyDown) {
-						switch (key_event.uChar.AsciiChar) {
-						case 27:
-							running = false;
-							break;
-						case 'h':
-							move_left();
-							break;
-						case 'j':
-							move_down();
-							break;
-						case 'k':
-							move_up();
-							break;
-						case 'l':
-							move_right();
-							break;
+			last_error = file_open("lipsum.txt");
+			if (last_error == 0) {
+				display_refresh();
+				bool running = true;
+				INPUT_RECORD input_record;
+				DWORD events_read;
+				while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
+					switch (input_record.EventType) {
+					case KEY_EVENT: {
+						const KEY_EVENT_RECORD& key_event = input_record.Event.KeyEvent;
+						if (key_event.bKeyDown) {
+							switch (key_event.uChar.AsciiChar) {
+							case 27:
+								running = false;
+								break;
+							case 'h':
+								move_left();
+								break;
+							case 'j':
+								move_down();
+								break;
+							case 'k':
+								move_up();
+								break;
+							case 'l':
+								move_right();
+								break;
+							}
+							display_refresh();
 						}
-						display_refresh();
+					}
 					}
 				}
-				}
+			} else {
+				OutputDebugStringA("Failed to load file\n");
 			}
 		} else {
 			OutputDebugStringA("Failed to initialize input\n");
