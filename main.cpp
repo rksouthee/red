@@ -4,11 +4,11 @@
 #include <vector>
 
 static HANDLE screen_handle;
-static int screen_width;
-static int screen_height;
-static std::vector<char> screen_state;
-static int screen_x;
-static int screen_y;
+
+struct Screen_dimension {
+	int width;
+	int height;
+};
 
 static DWORD screen_initialize()
 {
@@ -20,14 +20,6 @@ static DWORD screen_initialize()
 						  NULL);
 	if (screen_handle != INVALID_HANDLE_VALUE) {
 		if (SetConsoleActiveScreenBuffer(screen_handle)) {
-			CONSOLE_SCREEN_BUFFER_INFO csbi;
-			if (GetConsoleScreenBufferInfo(screen_handle, &csbi)) {
-				screen_width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-				screen_height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-				screen_state.resize(screen_width * screen_height, ' ');
-			} else {
-				last_error = GetLastError();
-			}
 		} else {
 			last_error = GetLastError();
 		}
@@ -38,45 +30,30 @@ static DWORD screen_initialize()
 	return last_error;
 }
 
-static void screen_putchar(char c)
+static Screen_dimension screen_dimension()
 {
-	assert(screen_x < screen_width && screen_y <= screen_height);
-	if (screen_y == screen_height)
-		return;
-
-	int index = screen_y * screen_width + screen_x;
-	if (c == '\n') {
-		std::fill_n(screen_state.begin() + index, screen_width - screen_x, ' ');
-		++screen_y;
-		screen_x = 0;
-		return;
-	}
-
-	screen_state[index] = c;
-
-	++screen_x;
-	if (screen_x == screen_width) {
-		++screen_y;
-		screen_x = 0;
-	}
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+	GetConsoleScreenBufferInfo(screen_handle, &csbi);
+	Screen_dimension dimension;
+	dimension.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	dimension.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	return dimension;
 }
 
-/* static void screen_putstring(const char* str) */
-/* { */
-/* 	while (*str) */
-/* 		screen_putchar(*str++); */
-/* } */
-
-static void screen_update()
+static void screen_cursor(int column, int row)
 {
-	DWORD size = static_cast<DWORD>(screen_state.size());
+	COORD position;
+	position.X = static_cast<SHORT>(column);
+	position.Y = static_cast<SHORT>(row);
+	SetConsoleCursorPosition(screen_handle, position);
+}
+
+static void screen_putstring(const std::string& str)
+{
+	DWORD length = static_cast<DWORD>(str.size());
+	COORD write_coord{0, 0};
 	DWORD chars_written;
-	COORD cursor{0, 0};
-	// TODO: check success and number of characters written
-	WriteConsoleOutputCharacterA(screen_handle, screen_state.data(), size, cursor, &chars_written);
-	cursor.X = static_cast<SHORT>(screen_x);
-	cursor.Y = static_cast<SHORT>(screen_y);
-	SetConsoleCursorPosition(screen_handle, cursor);
+	WriteConsoleOutputCharacterA(screen_handle, str.data(), length, write_coord, &chars_written);
 }
 
 static HANDLE input_handle;
@@ -112,13 +89,15 @@ static DWORD input_initialize()
 
 
 using Text_position = std::string::size_type;
-static std::string text_buffer;
-static Text_position text_position;
-static int text_column;
-static int text_column_desired;
-static Text_position window_line_top;
+struct Text_buffer {
+	std::string contents;
+	const char* filename;
+	Text_position cursor;
+	int column;
+	int column_desired;
+};
 
-static DWORD file_open(const char* filename)
+static DWORD file_open(const char* filename, Text_buffer& buffer)
 {
 	DWORD last_error = 0;
 	HANDLE file_handle = CreateFileA(filename,
@@ -134,7 +113,11 @@ static DWORD file_open(const char* filename)
 			DWORD bytes_read;
 			std::string temp_buffer(static_cast<std::string::size_type>(file_size), 0);
 			if (ReadFile(file_handle, &temp_buffer[0], file_size, &bytes_read, NULL)) {
-				text_buffer = std::move(temp_buffer);
+				buffer.contents = std::move(temp_buffer);
+				buffer.filename = filename;
+				buffer.cursor = 0;
+				buffer.column = 0;
+				buffer.column_desired = 0;
 			} else {
 				last_error = GetLastError();
 			}
@@ -148,128 +131,146 @@ static DWORD file_open(const char* filename)
 	return last_error;
 }
 
-Text_position find_backward(Text_position p, char c)
+Text_position find_backward(const Text_buffer& buffer, Text_position p, char c)
 {
 	while (p != 0) {
-		if (text_buffer[p - 1] == c)
+		if (buffer.contents[p - 1] == c)
 			break;
 		--p;
 	}
 	return p;
 }
 
-Text_position find_forward(Text_position p, char c)
+Text_position find_forward(const Text_buffer& buffer, Text_position p, char c)
 {
-	while (p != text_buffer.size() && text_buffer[p] != c)
+	while (p != buffer.contents.size() && buffer.contents[p] != c)
 		++p;
 	return p;
 }
 
-static void reframe()
+struct View {
+	Text_buffer* buffer;
+	int width;
+	int height;
+	Text_position top_line;
+};
+
+static void reframe(View& view)
 {
-	Text_position cursor_line = find_backward(text_position, '\n');
-	if (cursor_line <= window_line_top) {
-		window_line_top = cursor_line;
+	Text_position cursor_line = find_backward(*view.buffer, view.buffer->cursor, '\n');
+	if (cursor_line <= view.top_line) {
+		view.top_line = cursor_line;
 	} else {
 		int rows = 1;
 		Text_position line = cursor_line;
-		while (rows < screen_height) {
-			line = find_backward(line - 1, '\n');
-			if (line == window_line_top)
+		while (rows < view.height) {
+			line = find_backward(*view.buffer, line - 1, '\n');
+			if (line == view.top_line)
 				return;
 			++rows;
 		}
 
 		do {
-			window_line_top = find_forward(window_line_top, '\n') + 1;
-			if (window_line_top == line)
+			view.top_line = find_forward(*view.buffer, view.top_line, '\n') + 1;
+			if (view.top_line == line)
 				return;
 			--rows;
 		} while (rows > 0);
 
-		window_line_top = cursor_line;
+		view.top_line = cursor_line;
 	}
 }
 
-static void display_refresh()
+static std::string display_state;
+
+static void display_refresh(View& view)
 {
-	reframe();
+	reframe(view);
 
-	screen_x = 0;
-	screen_y = 0;
+	display_state.clear();
+	display_state.resize(view.width * view.height, ' ');
 
-	Text_position start = window_line_top;
-	while (start != text_position) {
-		screen_putchar(text_buffer[start]);
-		++start;
+	int cursor_row = 0;
+	int cursor_column = 0;
+
+	Text_position cursor = view.top_line;
+	for (int row = 0; row < view.height; ++row) {
+		for (int column = 0; column < view.width; ++column) {
+			if (cursor == view.buffer->cursor) {
+				cursor_row = row;
+				cursor_column = column;
+			}
+
+			if (cursor == view.buffer->contents.size())
+				goto done;
+
+			char ch = view.buffer->contents[cursor];
+			if (ch == '\n')
+				break;
+
+			display_state[row * view.width + column] = ch;
+			++cursor;
+		}
+
+		cursor = find_forward(*view.buffer, cursor, '\n');
+		if (cursor != view.buffer->contents.size())
+			++cursor;
 	}
 
-	int cursor_x = screen_x;
-	int cursor_y = screen_y;
-
-	while (start != text_buffer.size()) {
-		screen_putchar(text_buffer[start]);
-		++start;
-	}
-
-	int index = screen_y * screen_width + screen_x;
-	std::fill(screen_state.begin() + index, screen_state.end(), ' ');
-
-	screen_x = cursor_x;
-	screen_y = cursor_y;
-
-	screen_update();
+done:
+	screen_putstring(display_state);
+	screen_cursor(cursor_column, cursor_row);
 }
 
-static void move_left()
+static void move_left(Text_buffer& buffer)
 {
-	if (text_position > 0) {
-		--text_position;
-		if (text_column == 0) {
-			Text_position line_start = find_backward(text_position, '\n');
-			text_column = static_cast<int>(text_position - line_start);
+	if (buffer.cursor > 0) {
+		--buffer.cursor;
+		if (buffer.column == 0) {
+			Text_position line_start = find_backward(buffer, buffer.cursor, '\n');
+			buffer.column = static_cast<int>(buffer.cursor - line_start);
 		} else {
-			--text_column;
+			--buffer.column;
 		}
-		text_column_desired = text_column;
+		buffer.column_desired = buffer.column;
 	}
 }
 
-static void move_down()
+static void move_down(Text_buffer& buffer)
 {
-	Text_position p = find_forward(text_position, '\n');
-	if (p != text_buffer.size()) {
-		text_position = p + 1;
-		text_column = 0;
-		while (text_position != text_buffer.size() &&
-		       text_buffer[text_position] != '\n' &&
-		       text_column < text_column_desired) {
-			++text_position;
-			++text_column;
+	Text_position p = find_forward(buffer, buffer.cursor, '\n');
+	if (p != buffer.contents.size()) {
+		buffer.cursor = p + 1;
+		buffer.column = 0;
+		while (buffer.cursor != buffer.contents.size() &&
+		       buffer.contents[buffer.cursor] != '\n' &&
+		       buffer.column < buffer.column_desired) {
+			++buffer.cursor;
+			++buffer.column;
 		}
 	}
 }
 
-static void move_up()
+static void move_up(Text_buffer& buffer)
 {
-	Text_position p = find_backward(text_position, '\n');
+	Text_position p = find_backward(buffer, buffer.cursor, '\n');
 	if (p != 0) {
-		Text_position line_start = find_backward(p - 1, '\n');
-		text_column = std::min(text_column_desired, static_cast<int>(p - 1 - line_start));
-		text_position = line_start + text_column;
+		Text_position line_start = find_backward(buffer, p - 1, '\n');
+		buffer.column = std::min(buffer.column_desired, static_cast<int>(p - 1 - line_start));
+		buffer.cursor = line_start + buffer.column;
 	}
 }
 
-static void move_right()
+static void move_right(Text_buffer& buffer)
 {
-	if (text_position != text_buffer.size()) {
-		if (text_buffer[text_position] == '\n') {
-			text_column = 0;
+	if (buffer.cursor != buffer.contents.size()) {
+		if (buffer.contents[buffer.cursor] == '\n') {
+			buffer.column = 0;
 		} else {
-			++text_column;
+			++buffer.column;
 		}
-		++text_position;
-		text_column_desired = text_column;
+		++buffer.cursor;
+		buffer.column_desired = buffer.column;
 	}
 }
 
@@ -278,11 +279,18 @@ int main()
 	DWORD last_error = screen_initialize();
 
 	if (last_error == 0) {
+		Screen_dimension size = screen_dimension();
+		Text_buffer buffer;
+		View view;
+		view.buffer = &buffer;
+		view.width = size.width;
+		view.height = size.height - 1;
+		view.top_line = 0;
 		last_error = input_initialize();
 		if (last_error == 0) {
-			last_error = file_open("lipsum.txt");
+			last_error = file_open("lipsum.txt", buffer);
 			if (last_error == 0) {
-				display_refresh();
+				display_refresh(view);
 				bool running = true;
 				INPUT_RECORD input_record;
 				DWORD events_read;
@@ -296,19 +304,19 @@ int main()
 								running = false;
 								break;
 							case 'h':
-								move_left();
+								move_left(buffer);
 								break;
 							case 'j':
-								move_down();
+								move_down(buffer);
 								break;
 							case 'k':
-								move_up();
+								move_up(buffer);
 								break;
 							case 'l':
-								move_right();
+								move_right(buffer);
 								break;
 							}
-							display_refresh();
+							display_refresh(view);
 						}
 					}
 					}
