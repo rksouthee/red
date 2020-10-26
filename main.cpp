@@ -87,7 +87,6 @@ static DWORD input_initialize()
 	return last_error;
 }
 
-
 using Text_position = std::string::size_type;
 struct Text_buffer {
 	std::string contents;
@@ -153,6 +152,7 @@ struct View {
 	int width;
 	int height;
 	Text_position top_line;
+	int first_column;
 };
 
 static void reframe(View& view)
@@ -166,18 +166,26 @@ static void reframe(View& view)
 		while (rows < view.height) {
 			line = find_backward(*view.buffer, line - 1, '\n');
 			if (line == view.top_line)
-				return;
+				goto done;
 			++rows;
 		}
 
 		do {
 			view.top_line = find_forward(*view.buffer, view.top_line, '\n') + 1;
 			if (view.top_line == line)
-				return;
+				goto done;
 			--rows;
 		} while (rows > 0);
 
 		view.top_line = cursor_line;
+	}
+
+done:
+	int column = static_cast<int>(view.buffer->cursor - cursor_line);
+	if (column < view.first_column) {
+		view.first_column = column;
+	} else if (view.first_column + view.width <= column) {
+		view.first_column = column - view.width + 1;
 	}
 }
 
@@ -195,6 +203,15 @@ static void display_refresh(View& view)
 
 	Text_position cursor = view.top_line;
 	for (int row = 0; row < view.height; ++row) {
+		// advance to the correct column
+		for (int i = 0; i < view.first_column; ++i) {
+			if (cursor == view.buffer->contents.size())
+				break;
+			if (view.buffer->contents[cursor] == '\n')
+				break;
+			++cursor;
+		}
+
 		for (int column = 0; column < view.width; ++column) {
 			if (cursor == view.buffer->cursor) {
 				cursor_row = row;
@@ -286,6 +303,7 @@ int main()
 		view.width = size.width;
 		view.height = size.height - 1;
 		view.top_line = 0;
+		view.first_column = 0;
 		last_error = input_initialize();
 		if (last_error == 0) {
 			last_error = file_open("lipsum.txt", buffer);
