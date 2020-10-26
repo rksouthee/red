@@ -291,52 +291,120 @@ static void move_right(Text_buffer& buffer)
 	}
 }
 
+struct Editor_state {
+	Text_buffer buffer;
+	View view;
+};
+
+static Editor_state editor;
+
+static void editor_initialize()
+{
+	editor.view.buffer = &editor.buffer;
+	Screen_dimension size = screen_dimension();
+	editor.view.width = size.width;
+	editor.view.height = size.height - 1;
+	editor.view.top_line = 0;
+	editor.view.first_column = 0;
+}
+
+typedef void (*Command_function)(void);
+
+static void command_none()
+{
+}
+
+static void forward_char()
+{
+	move_right(editor.buffer);
+}
+
+static void backward_char()
+{
+	move_left(editor.buffer);
+}
+
+static void forward_line()
+{
+	move_down(editor.buffer);
+}
+
+static void backward_line()
+{
+	move_up(editor.buffer);
+}
+
+static bool running;
+
+static void quit()
+{
+	running = false;
+}
+
+Command_function normal_mode[256];
+
+static void normal_commands_initialize()
+{
+	for (int i = 0; i < 256; ++i) {
+		normal_mode[i] = command_none;
+	}
+
+	normal_mode[27] = quit;
+	normal_mode['h'] = backward_char;
+	normal_mode['j'] = forward_line;
+	normal_mode['k'] = backward_line;
+	normal_mode['l'] = forward_char;
+}
+
+static void handle_key_event(const KEY_EVENT_RECORD& key_event)
+{
+	if (key_event.bKeyDown) {
+		normal_mode[key_event.uChar.AsciiChar]();
+		display_refresh(editor.view);
+	}
+}
+
 int main()
 {
 	DWORD last_error = screen_initialize();
 
 	if (last_error == 0) {
-		Screen_dimension size = screen_dimension();
-		Text_buffer buffer;
-		View view;
-		view.buffer = &buffer;
-		view.width = size.width;
-		view.height = size.height - 1;
-		view.top_line = 0;
-		view.first_column = 0;
+		editor_initialize();
+		normal_commands_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
-			last_error = file_open("lipsum.txt", buffer);
+			last_error = file_open("lipsum.txt", editor.buffer);
 			if (last_error == 0) {
-				display_refresh(view);
-				bool running = true;
+				display_refresh(editor.view);
+				running = true;
 				INPUT_RECORD input_record;
 				DWORD events_read;
 				while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
 					switch (input_record.EventType) {
 					case KEY_EVENT: {
 						const KEY_EVENT_RECORD& key_event = input_record.Event.KeyEvent;
-						if (key_event.bKeyDown) {
-							switch (key_event.uChar.AsciiChar) {
-							case 27:
-								running = false;
-								break;
-							case 'h':
-								move_left(buffer);
-								break;
-							case 'j':
-								move_down(buffer);
-								break;
-							case 'k':
-								move_up(buffer);
-								break;
-							case 'l':
-								move_right(buffer);
-								break;
-							}
-							display_refresh(view);
-						}
-					}
+						handle_key_event(key_event);
+						/* if (key_event.bKeyDown) { */
+						/* 	switch (key_event.uChar.AsciiChar) { */
+						/* 	case 27: */
+						/* 		running = false; */
+						/* 		break; */
+						/* 	case 'h': */
+						/* 		move_left(buffer); */
+						/* 		break; */
+						/* 	case 'j': */
+						/* 		move_down(buffer); */
+						/* 		break; */
+						/* 	case 'k': */
+						/* 		move_up(buffer); */
+						/* 		break; */
+						/* 	case 'l': */
+						/* 		move_right(buffer); */
+						/* 		break; */
+						/* 	} */
+						/* 	display_refresh(view); */
+						/* } */
+					} break;
 					}
 				}
 			} else {
