@@ -318,6 +318,14 @@ static void insert(Text_buffer& buffer, char character)
 	buffer.contents.insert(buffer.cursor, 1, character);
 }
 
+static void erase(Text_buffer& buffer)
+{
+	if (buffer.cursor > 0) {
+		--buffer.cursor;
+		buffer.contents.erase(buffer.cursor, 1);
+	}
+}
+
 typedef void (*Command_function)(void);
 
 static void command_none()
@@ -353,20 +361,21 @@ static void quit()
 
 static void start_insert_mode();
 
-static Command_function normal_mode[256];
+#define MAX_KEYS (1 << (8 + 3))
+static Command_function normal_mode[MAX_KEYS];
 
 static void normal_mode_initialize()
 {
-	for (int i = 0; i < 256; ++i) {
+	for (int i = 0; i < MAX_KEYS; ++i) {
 		normal_mode[i] = command_none;
 	}
 
-	normal_mode[27] = quit;
-	normal_mode['h'] = backward_char;
-	normal_mode['j'] = forward_line;
-	normal_mode['k'] = backward_line;
-	normal_mode['l'] = forward_char;
-	normal_mode['i'] = start_insert_mode;
+	normal_mode[VK_ESCAPE] = quit;
+	normal_mode['H'] = backward_char;
+	normal_mode['J'] = forward_line;
+	normal_mode['K'] = backward_line;
+	normal_mode['L'] = forward_char;
+	normal_mode['I'] = start_insert_mode;
 }
 
 static KEY_EVENT_RECORD last_key_event;
@@ -380,13 +389,24 @@ static void command_self_insert()
 	}
 }
 
-static Command_function insert_mode[256];
+static void command_newline()
+{
+	insert(editor.buffer, '\n');
+	++editor.buffer.cursor;
+}
+
+static void command_backspace()
+{
+	erase(editor.buffer);
+}
+
+static Command_function insert_mode[MAX_KEYS];
 
 static void leave_insert_mode();
 
 static void insert_mode_initialize()
 {
-	for (int i = 0; i < 256; ++i) {
+	for (int i = 0; i < MAX_KEYS; ++i) {
 		if (std::isprint(i))
 			insert_mode[i] = command_self_insert;
 		else
@@ -394,6 +414,8 @@ static void insert_mode_initialize()
 	}
 
 	insert_mode[27] = leave_insert_mode;
+	insert_mode[VK_RETURN] = command_newline;
+	insert_mode[VK_BACK] = command_backspace;
 }
 
 static Command_function* commands = normal_mode;
@@ -414,7 +436,17 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 {
 	if (key_event.bKeyDown) {
 		last_key_event = key_event;
-		commands[key_event.uChar.AsciiChar]();
+		DWORD ctrl_mask = LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED;
+		DWORD alt_mask = LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED;
+		DWORD shift_mask = SHIFT_PRESSED;
+		bool ctrl = (key_event.dwControlKeyState & ctrl_mask) != 0;
+		bool alt = (key_event.dwControlKeyState & alt_mask) != 0;
+		bool shift = (key_event.dwControlKeyState & shift_mask) != 0;
+		unsigned key = key_event.wVirtualKeyCode |
+			((unsigned)ctrl << 8) |
+			((unsigned)alt << 9) |
+			((unsigned)shift << 10);
+		commands[key]();
 		// TODO: only redraw if something changed?
 		display_refresh(editor.view);
 	}
