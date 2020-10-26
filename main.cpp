@@ -189,6 +189,24 @@ done:
 	}
 }
 
+struct Editor_state {
+	Text_buffer buffer;
+	View view;
+	std::string status_line;
+};
+
+static Editor_state editor;
+
+static void editor_initialize()
+{
+	editor.view.buffer = &editor.buffer;
+	Screen_dimension size = screen_dimension();
+	editor.view.width = size.width;
+	editor.view.height = size.height - 1;
+	editor.view.top_line = 0;
+	editor.view.first_column = 0;
+}
+
 static std::string display_state;
 
 static void display_refresh(View& view)
@@ -196,7 +214,7 @@ static void display_refresh(View& view)
 	reframe(view);
 
 	display_state.clear();
-	display_state.resize(view.width * view.height, ' ');
+	display_state.resize(view.width * (view.height + 1), ' ');
 
 	int cursor_row = 0;
 	int cursor_column = 0;
@@ -235,6 +253,10 @@ static void display_refresh(View& view)
 	}
 
 done:
+	int n = std::min(static_cast<int>(editor.status_line.size()), view.width);
+	for (int i = 0; i < n; ++i) {
+		display_state[view.height * view.width + i] = editor.status_line[i];
+	}
 	screen_putstring(display_state);
 	screen_cursor(cursor_column, cursor_row);
 }
@@ -291,21 +313,9 @@ static void move_right(Text_buffer& buffer)
 	}
 }
 
-struct Editor_state {
-	Text_buffer buffer;
-	View view;
-};
-
-static Editor_state editor;
-
-static void editor_initialize()
+static void insert(Text_buffer& buffer, char character)
 {
-	editor.view.buffer = &editor.buffer;
-	Screen_dimension size = screen_dimension();
-	editor.view.width = size.width;
-	editor.view.height = size.height - 1;
-	editor.view.top_line = 0;
-	editor.view.first_column = 0;
+	buffer.contents.insert(buffer.cursor, 1, character);
 }
 
 typedef void (*Command_function)(void);
@@ -341,9 +351,11 @@ static void quit()
 	running = false;
 }
 
-Command_function normal_mode[256];
+static void start_insert_mode();
 
-static void normal_commands_initialize()
+static Command_function normal_mode[256];
+
+static void normal_mode_initialize()
 {
 	for (int i = 0; i < 256; ++i) {
 		normal_mode[i] = command_none;
@@ -354,12 +366,56 @@ static void normal_commands_initialize()
 	normal_mode['j'] = forward_line;
 	normal_mode['k'] = backward_line;
 	normal_mode['l'] = forward_char;
+	normal_mode['i'] = start_insert_mode;
+}
+
+static KEY_EVENT_RECORD last_key_event;
+
+static void command_self_insert()
+{
+	char character = last_key_event.uChar.AsciiChar;
+	if (std::isprint(character)) {
+		insert(editor.buffer, character);
+		++editor.buffer.cursor;
+	}
+}
+
+static Command_function insert_mode[256];
+
+static void leave_insert_mode();
+
+static void insert_mode_initialize()
+{
+	for (int i = 0; i < 256; ++i) {
+		if (std::isprint(i))
+			insert_mode[i] = command_self_insert;
+		else
+			insert_mode[i] = command_none;
+	}
+
+	insert_mode[27] = leave_insert_mode;
+}
+
+static Command_function* commands = normal_mode;
+
+static void start_insert_mode()
+{
+	commands = insert_mode;
+	editor.status_line = "--INSERT--";
+}
+
+static void leave_insert_mode()
+{
+	commands = normal_mode;
+	editor.status_line.clear();
 }
 
 static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 {
 	if (key_event.bKeyDown) {
-		normal_mode[key_event.uChar.AsciiChar]();
+		last_key_event = key_event;
+		commands[key_event.uChar.AsciiChar]();
+		// TODO: only redraw if something changed?
 		display_refresh(editor.view);
 	}
 }
@@ -370,7 +426,8 @@ int main()
 
 	if (last_error == 0) {
 		editor_initialize();
-		normal_commands_initialize();
+		normal_mode_initialize();
+		insert_mode_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
 			last_error = file_open("lipsum.txt", editor.buffer);
@@ -382,28 +439,7 @@ int main()
 				while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
 					switch (input_record.EventType) {
 					case KEY_EVENT: {
-						const KEY_EVENT_RECORD& key_event = input_record.Event.KeyEvent;
-						handle_key_event(key_event);
-						/* if (key_event.bKeyDown) { */
-						/* 	switch (key_event.uChar.AsciiChar) { */
-						/* 	case 27: */
-						/* 		running = false; */
-						/* 		break; */
-						/* 	case 'h': */
-						/* 		move_left(buffer); */
-						/* 		break; */
-						/* 	case 'j': */
-						/* 		move_down(buffer); */
-						/* 		break; */
-						/* 	case 'k': */
-						/* 		move_up(buffer); */
-						/* 		break; */
-						/* 	case 'l': */
-						/* 		move_right(buffer); */
-						/* 		break; */
-						/* 	} */
-						/* 	display_refresh(view); */
-						/* } */
+						handle_key_event(input_record.Event.KeyEvent);
 					} break;
 					}
 				}
