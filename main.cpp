@@ -5,13 +5,10 @@
 
 /*
  * TODO:
- * Tabs (render using spaces and handle movement)
  * File saving
  * Window resizing
  * Respect desired column after insertion
- * File saving
  * Quitting
- * Printing non-printable characters
  */
 
 static HANDLE screen_handle;
@@ -208,7 +205,15 @@ static void reframe(View& view)
 	}
 
 done:
-	int column = static_cast<int>(view.buffer->cursor - cursor_line);
+	int column = 0;
+	while (cursor_line != view.buffer->cursor) {
+		if (view.buffer->contents[cursor_line] == '\t') {
+			column += 8 - (column & 0x7);
+		} else {
+			++column;
+		}
+		++cursor_line;
+	}
 	if (column < view.first_column) {
 		view.first_column = column;
 	} else if (view.first_column + view.width <= column) {
@@ -249,18 +254,23 @@ static void display_refresh(View& view)
 	Text_position cursor = view.top_line;
 	for (int row = 0; row < view.height; ++row) {
 		// advance to the correct column
-		for (int i = 0; i < view.first_column; ++i) {
+		int column = 0;
+		while (column < view.first_column) {
 			if (cursor == view.buffer->contents.size())
 				break;
 			if (view.buffer->contents[cursor] == '\n')
 				break;
+			if (view.buffer->contents[cursor] == '\t')
+				column += 8 - (column & 0x7);
+			else
+				++column;
 			++cursor;
 		}
 
-		for (int column = 0; column < view.width; ++column) {
+		for (int width = 0; width < view.width;) {
 			if (cursor == view.buffer->cursor) {
 				cursor_row = row;
-				cursor_column = column;
+				cursor_column = width;
 			}
 
 			if (cursor == view.buffer->contents.size())
@@ -270,7 +280,19 @@ static void display_refresh(View& view)
 			if (ch == '\n')
 				break;
 
-			display_state[row * view.width + column] = ch;
+			if (ch == '\t') {
+				int nspaces = 8 - (column & 0x7);
+				while (nspaces && width < view.width) {
+					display_state[row * view.width + width] = ' ';
+					--nspaces;
+					++width;
+					++column;
+				}
+			} else {
+				display_state[row * view.width + width] = ch;
+				++column;
+				++width;
+			}
 			++cursor;
 		}
 
@@ -413,7 +435,7 @@ static KEY_EVENT_RECORD last_key_event;
 static bool is_print(char character)
 {
 	auto uchar = static_cast<unsigned char>(character);
-	return (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
+	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
 }
 
 static void command_self_insert()
