@@ -12,7 +12,6 @@
  * File saving
  * Quitting
  * Printing non-printable characters
- * Console title
  * Cursor style
  */
 
@@ -467,6 +466,7 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 
 int main()
 {
+	SetConsoleTitle("RED");
 	DWORD last_error = screen_initialize();
 
 	if (last_error == 0) {
