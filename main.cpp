@@ -5,10 +5,10 @@
 
 /*
  * TODO:
- * File saving
  * Window resizing
  * Respect desired column after insertion
  * Quitting
+ * Command line arguments
  */
 
 static HANDLE screen_handle;
@@ -154,6 +154,32 @@ static DWORD file_open(const char* filename, Text_buffer& buffer)
 	return last_error;
 }
 
+static DWORD file_save(Text_buffer& buffer)
+{
+	DWORD last_error = 0;
+	HANDLE file_handle = CreateFileA(buffer.filename,
+					 GENERIC_WRITE,
+					 0,
+					 NULL,
+					 CREATE_ALWAYS,
+					 FILE_ATTRIBUTE_NORMAL,
+					 0);
+	if (file_handle != INVALID_HANDLE_VALUE) {
+		auto bytes = static_cast<DWORD>(buffer.contents.size());
+		DWORD bytes_written;
+		if (WriteFile(file_handle, buffer.contents.data(), bytes, &bytes_written, NULL)) {
+			// TODO: write a message on success
+		} else {
+			last_error = GetLastError();
+		}
+		CloseHandle(file_handle);
+	} else {
+		last_error = GetLastError();
+	}
+
+	return last_error;
+}
+
 Text_position find_backward(const Text_buffer& buffer, Text_position p, char c)
 {
 	while (p != 0) {
@@ -228,6 +254,12 @@ struct Editor_state {
 };
 
 static Editor_state editor;
+
+static void save()
+{
+	// TODO: check for errors
+	file_save(editor.buffer);
+}
 
 static void editor_initialize()
 {
@@ -408,10 +440,17 @@ static void quit()
 	running = false;
 }
 
+static void save();
+
 static void start_insert_mode();
 
 #define MAX_KEYS (1 << (8 + 3))
 static Command_function normal_mode[MAX_KEYS];
+
+static inline UINT control(UINT key_code)
+{
+	return key_code | (1 << 8);
+}
 
 static void normal_mode_initialize()
 {
@@ -425,6 +464,7 @@ static void normal_mode_initialize()
 	normal_mode['K'] = backward_line;
 	normal_mode['L'] = forward_char;
 	normal_mode['I'] = start_insert_mode;
+	normal_mode[control('S')] = save;
 }
 
 static KEY_EVENT_RECORD last_key_event;
@@ -521,7 +561,7 @@ int main()
 		insert_mode_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
-			last_error = file_open("lipsum.txt", editor.buffer);
+			last_error = file_open("test.txt", editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				running = true;
