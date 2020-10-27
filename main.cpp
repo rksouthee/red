@@ -12,7 +12,6 @@
  * File saving
  * Quitting
  * Printing non-printable characters
- * Cursor style
  */
 
 static HANDLE screen_handle;
@@ -408,10 +407,19 @@ static void normal_mode_initialize()
 
 static KEY_EVENT_RECORD last_key_event;
 
+/*
+ * XXX: Assuming codepage 850, should correctly use locales and switch to utf-8
+ */
+static bool is_print(char character)
+{
+	auto uchar = static_cast<unsigned char>(character);
+	return (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
+}
+
 static void command_self_insert()
 {
 	char character = last_key_event.uChar.AsciiChar;
-	if (std::isprint(character)) {
+	if (is_print(character)) {
 		insert(editor.buffer, character);
 		++editor.buffer.cursor;
 	}
@@ -435,13 +443,10 @@ static void leave_insert_mode();
 static void insert_mode_initialize()
 {
 	for (int i = 0; i < MAX_KEYS; ++i) {
-		if (std::isprint(i))
-			insert_mode[i] = command_self_insert;
-		else
-			insert_mode[i] = command_none;
+		insert_mode[i] = command_self_insert;
 	}
 
-	insert_mode[27] = leave_insert_mode;
+	insert_mode[VK_ESCAPE] = leave_insert_mode;
 	insert_mode[VK_RETURN] = command_newline;
 	insert_mode[VK_BACK] = command_backspace;
 }
