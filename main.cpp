@@ -60,6 +60,22 @@ static void screen_cursor(int column, int row)
 	SetConsoleCursorPosition(screen_handle, position);
 }
 
+enum class Cursor_style {
+	block,
+	underline
+};
+
+static void screen_cursor_style(Cursor_style style)
+{
+	CONSOLE_CURSOR_INFO cursor_info;
+	if (style == Cursor_style::block)
+		cursor_info.dwSize = 100;
+	else
+		cursor_info.dwSize = 1;
+	cursor_info.bVisible = true;
+	SetConsoleCursorInfo(screen_handle, &cursor_info);
+}
+
 static void screen_putstring(const std::string& str)
 {
 	DWORD length = static_cast<DWORD>(str.size());
@@ -436,12 +452,14 @@ static void start_insert_mode()
 {
 	commands = insert_mode;
 	editor.status_line = "--INSERT--";
+	screen_cursor_style(Cursor_style::underline);
 }
 
 static void leave_insert_mode()
 {
 	commands = normal_mode;
 	editor.status_line.clear();
+	screen_cursor_style(Cursor_style::block);
 }
 
 static void handle_key_event(const KEY_EVENT_RECORD& key_event)
@@ -471,6 +489,7 @@ int main()
 
 	if (last_error == 0) {
 		editor_initialize();
+		screen_cursor_style(Cursor_style::block);
 		normal_mode_initialize();
 		insert_mode_initialize();
 		last_error = input_initialize();
