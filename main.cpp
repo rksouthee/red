@@ -3,6 +3,19 @@
 #include <string>
 #include <vector>
 
+/*
+ * TODO:
+ * Tabs (render using spaces and handle movement)
+ * File saving
+ * Window resizing
+ * Respect desired column after insertion
+ * File saving
+ * Quitting
+ * Printing non-printable characters
+ * Console title
+ * Cursor style
+ */
+
 static HANDLE screen_handle;
 
 struct Screen_dimension {
