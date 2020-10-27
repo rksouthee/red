@@ -7,7 +7,6 @@
  * TODO:
  * Window resizing
  * Respect desired column after insertion
- * Quitting
  * Command line arguments
  */
 
@@ -437,6 +436,7 @@ static bool running;
 
 static void quit()
 {
+	// TODO: check if file is modified
 	running = false;
 }
 
@@ -444,12 +444,22 @@ static void save();
 
 static void start_insert_mode();
 
+/*
+ * 11 bits for key state
+ * A9876543210
+ * sackkkkkkkk
+ * s = shift
+ * a = alt
+ * c = ctrl
+ * k = key code
+ */
 #define MAX_KEYS (1 << (8 + 3))
+#define CONTROL_SHIFT (1 << 8)
 static Command_function normal_mode[MAX_KEYS];
 
 static inline UINT control(UINT key_code)
 {
-	return key_code | (1 << 8);
+	return key_code | CONTROL_SHIFT;
 }
 
 static void normal_mode_initialize()
@@ -458,13 +468,13 @@ static void normal_mode_initialize()
 		normal_mode[i] = command_none;
 	}
 
-	normal_mode[VK_ESCAPE] = quit;
 	normal_mode['H'] = backward_char;
 	normal_mode['J'] = forward_line;
 	normal_mode['K'] = backward_line;
 	normal_mode['L'] = forward_char;
 	normal_mode['I'] = start_insert_mode;
 	normal_mode[control('S')] = save;
+	normal_mode[control('Q')] = quit;
 }
 
 static KEY_EVENT_RECORD last_key_event;
