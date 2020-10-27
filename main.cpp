@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <cassert>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -559,8 +560,13 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 	}
 }
 
-int main()
+int main(int argc, char **argv)
 {
+	if (argc != 2) {
+		std::cerr << "Usage: RED <filename>" << std::endl;
+		return -1;
+	}
+
 	SetConsoleTitle("RED");
 	DWORD last_error = screen_initialize();
 
@@ -571,7 +577,9 @@ int main()
 		insert_mode_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
-			last_error = file_open("test.txt", editor.buffer);
+			const char* filename = argv[1];
+			// TODO: Handle the case when the file doesn't exist
+			last_error = file_open(filename, editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				running = true;
