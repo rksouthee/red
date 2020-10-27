@@ -6,9 +6,7 @@
 
 /*
  * TODO:
- * Window resizing
  * Respect desired column after insertion
- * Command line arguments
  */
 
 static HANDLE screen_handle;
@@ -560,6 +558,24 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 	}
 }
 
+static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& size_event)
+{
+	/*
+	 * When the console window is resized, if the height of the screen is increased
+	 * windows introduces a vertical scrollbar, ideally we would like to remove the
+	 * scrollbar but trying to handle it here results in the width of the screen buffer
+	 * not matching the width of the window due to the scrollbar.
+	 *
+	 * Vim handles this by resizing the height when the window size changes, and when
+	 * the user presses CTRL-L the width is adjusted (shortened) appropriately.
+	 */
+	UNREFERENCED_PARAMETER(size_event);
+	Screen_dimension size = screen_dimension();
+	editor.view.width = size.width;
+	editor.view.height = size.height - 1;
+	display_refresh(editor.view);
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
@@ -587,9 +603,12 @@ int main(int argc, char **argv)
 				DWORD events_read;
 				while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
 					switch (input_record.EventType) {
-					case KEY_EVENT: {
+					case KEY_EVENT:
 						handle_key_event(input_record.Event.KeyEvent);
-					} break;
+						break;
+					case WINDOW_BUFFER_SIZE_EVENT:
+						handle_window_buffer_size_event(input_record.Event.WindowBufferSizeEvent);
+						break;
 					}
 				}
 			} else {
