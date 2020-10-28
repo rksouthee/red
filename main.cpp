@@ -621,5 +621,12 @@ int main(int argc, char **argv)
 		OutputDebugStringA("Failed to initialize screen buffer\n");
 	}
 
+
+	// Restore the original title
+	const DWORD title_size = 64 * 1024;
+	char console_title[title_size];
+	GetConsoleOriginalTitle(console_title, title_size);
+	SetConsoleTitle(console_title);
+
 	return last_error;
 }
