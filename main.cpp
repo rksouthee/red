@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "buffer.hpp"
 
 /*
  * TODO:
@@ -109,16 +110,7 @@ static DWORD input_initialize()
 	return last_error;
 }
 
-using Text_position = std::string::size_type;
-struct Text_buffer {
-	std::string contents;
-	const char* filename;
-	Text_position cursor;
-	int column;
-	int column_desired;
-};
-
-static DWORD file_open(const char* filename, Text_buffer& buffer)
+static DWORD file_open(const char* filename, Buffer& buffer)
 {
 	DWORD last_error = 0;
 	HANDLE file_handle = CreateFileA(filename,
@@ -129,16 +121,14 @@ static DWORD file_open(const char* filename, Text_buffer& buffer)
 					 FILE_ATTRIBUTE_NORMAL,
 					 0);
 	if (file_handle != INVALID_HANDLE_VALUE) {
+		// TODO: Use GetFileSizeEx instead
 		DWORD file_size = GetFileSize(file_handle, NULL);
 		if (file_size != INVALID_FILE_SIZE) {
 			DWORD bytes_read;
 			std::string temp_buffer(static_cast<std::string::size_type>(file_size), 0);
+			// TODO: Check we read the correct number of bytes
 			if (ReadFile(file_handle, &temp_buffer[0], file_size, &bytes_read, NULL)) {
-				buffer.contents = std::move(temp_buffer);
-				buffer.filename = filename;
-				buffer.cursor = 0;
-				buffer.column = 0;
-				buffer.column_desired = 0;
+				buffer = Buffer(filename, std::move(temp_buffer));
 			} else {
 				last_error = GetLastError();
 			}
@@ -152,10 +142,10 @@ static DWORD file_open(const char* filename, Text_buffer& buffer)
 	return last_error;
 }
 
-static DWORD file_save(Text_buffer& buffer)
+static DWORD file_save(Buffer& buffer)
 {
 	DWORD last_error = 0;
-	HANDLE file_handle = CreateFileA(buffer.filename,
+	HANDLE file_handle = CreateFileA(buffer.filename(),
 					 GENERIC_WRITE,
 					 0,
 					 NULL,
@@ -163,9 +153,9 @@ static DWORD file_save(Text_buffer& buffer)
 					 FILE_ATTRIBUTE_NORMAL,
 					 0);
 	if (file_handle != INVALID_HANDLE_VALUE) {
-		auto bytes = static_cast<DWORD>(buffer.contents.size());
+		auto bytes = static_cast<DWORD>(buffer.size());
 		DWORD bytes_written;
-		if (WriteFile(file_handle, buffer.contents.data(), bytes, &bytes_written, NULL)) {
+		if (WriteFile(file_handle, buffer.data(), bytes, &bytes_written, NULL)) {
 			// TODO: write a message on success
 		} else {
 			last_error = GetLastError();
@@ -178,48 +168,45 @@ static DWORD file_save(Text_buffer& buffer)
 	return last_error;
 }
 
-Text_position find_backward(const Text_buffer& buffer, Text_position p, char c)
-{
-	while (p != 0) {
-		if (buffer.contents[p - 1] == c)
-			break;
-		--p;
-	}
-	return p;
-}
-
-Text_position find_forward(const Text_buffer& buffer, Text_position p, char c)
-{
-	while (p != buffer.contents.size() && buffer.contents[p] != c)
-		++p;
-	return p;
-}
-
 struct View {
-	Text_buffer* buffer;
+	Buffer* buffer;
 	int width;
 	int height;
-	Text_position top_line;
+	Buffer::iterator cursor;
+	Buffer::iterator top_line;
 	int first_column;
 };
 
+template <typename I>
+// requires BidirectionalIterator(I)
+I find_backward(I f, I l, const typename std::iterator_traits<I>::value_type& x)
+{
+	while (l != f) {
+		--l;
+		if (*l == x)
+			return std::next(l);
+	}
+	return l;
+}
+
 static void reframe(View& view)
 {
-	Text_position cursor_line = find_backward(*view.buffer, view.buffer->cursor, '\n');
+	Buffer::iterator cursor_line = find_backward(view.buffer->begin(), view.cursor, '\n');
 	if (cursor_line <= view.top_line) {
 		view.top_line = cursor_line;
 	} else {
 		int rows = 1;
-		Text_position line = cursor_line;
+		Buffer::iterator line = cursor_line;
 		while (rows < view.height) {
-			line = find_backward(*view.buffer, line - 1, '\n');
+			line = find_backward(view.buffer->begin(), std::prev(line), '\n');
 			if (line == view.top_line)
 				goto done;
 			++rows;
 		}
 
 		do {
-			view.top_line = find_forward(*view.buffer, view.top_line, '\n') + 1;
+			view.top_line  = std::find(view.top_line, view.buffer->end(), '\n');
+			++view.top_line;
 			if (view.top_line == line)
 				goto done;
 			--rows;
@@ -230,8 +217,8 @@ static void reframe(View& view)
 
 done:
 	int column = 0;
-	while (cursor_line != view.buffer->cursor) {
-		if (view.buffer->contents[cursor_line] == '\t') {
+	while (cursor_line != view.cursor) {
+		if (*view.cursor == '\t') {
 			column += 8 - (column & 0x7);
 		} else {
 			++column;
@@ -246,7 +233,7 @@ done:
 }
 
 struct Editor_state {
-	Text_buffer buffer;
+	Buffer buffer;
 	View view;
 	std::string status_line;
 };
@@ -265,7 +252,8 @@ static void editor_initialize()
 	Screen_dimension size = screen_dimension();
 	editor.view.width = size.width;
 	editor.view.height = size.height - 1;
-	editor.view.top_line = 0;
+	editor.view.cursor = editor.buffer.begin();
+	editor.view.top_line = editor.buffer.begin();
 	editor.view.first_column = 0;
 }
 
@@ -281,16 +269,16 @@ static void display_refresh(View& view)
 	int cursor_row = 0;
 	int cursor_column = 0;
 
-	Text_position cursor = view.top_line;
+	Buffer::iterator cursor = view.top_line;
 	for (int row = 0; row < view.height; ++row) {
 		// advance to the correct column
 		int column = 0;
 		while (column < view.first_column) {
-			if (cursor == view.buffer->contents.size())
+			if (cursor == view.buffer->end())
 				break;
-			if (view.buffer->contents[cursor] == '\n')
+			if (*cursor == '\n')
 				break;
-			if (view.buffer->contents[cursor] == '\t')
+			if (*cursor == '\t')
 				column += 8 - (column & 0x7);
 			else
 				++column;
@@ -298,15 +286,15 @@ static void display_refresh(View& view)
 		}
 
 		for (int width = 0; width < view.width;) {
-			if (cursor == view.buffer->cursor) {
+			if (cursor == view.cursor) {
 				cursor_row = row;
 				cursor_column = width;
 			}
 
-			if (cursor == view.buffer->contents.size())
+			if (cursor == view.buffer->end())
 				goto done;
 
-			char ch = view.buffer->contents[cursor];
+			char ch = *cursor;
 			if (ch == '\n')
 				break;
 
@@ -326,8 +314,8 @@ static void display_refresh(View& view)
 			++cursor;
 		}
 
-		cursor = find_forward(*view.buffer, cursor, '\n');
-		if (cursor != view.buffer->contents.size())
+		cursor = std::find(cursor, view.buffer->end(), '\n');
+		if (cursor != view.buffer->end())
 			++cursor;
 	}
 
@@ -340,71 +328,6 @@ done:
 	screen_cursor(cursor_column, cursor_row);
 }
 
-static void move_left(Text_buffer& buffer)
-{
-	if (buffer.cursor > 0) {
-		--buffer.cursor;
-		if (buffer.column == 0) {
-			Text_position line_start = find_backward(buffer, buffer.cursor, '\n');
-			buffer.column = static_cast<int>(buffer.cursor - line_start);
-		} else {
-			--buffer.column;
-		}
-		buffer.column_desired = buffer.column;
-	}
-}
-
-static void move_down(Text_buffer& buffer)
-{
-	Text_position p = find_forward(buffer, buffer.cursor, '\n');
-	if (p != buffer.contents.size()) {
-		buffer.cursor = p + 1;
-		buffer.column = 0;
-		while (buffer.cursor != buffer.contents.size() &&
-		       buffer.contents[buffer.cursor] != '\n' &&
-		       buffer.column < buffer.column_desired) {
-			++buffer.cursor;
-			++buffer.column;
-		}
-	}
-}
-
-static void move_up(Text_buffer& buffer)
-{
-	Text_position p = find_backward(buffer, buffer.cursor, '\n');
-	if (p != 0) {
-		Text_position line_start = find_backward(buffer, p - 1, '\n');
-		buffer.column = std::min(buffer.column_desired, static_cast<int>(p - 1 - line_start));
-		buffer.cursor = line_start + buffer.column;
-	}
-}
-
-static void move_right(Text_buffer& buffer)
-{
-	if (buffer.cursor != buffer.contents.size()) {
-		if (buffer.contents[buffer.cursor] == '\n') {
-			buffer.column = 0;
-		} else {
-			++buffer.column;
-		}
-		++buffer.cursor;
-		buffer.column_desired = buffer.column;
-	}
-}
-
-static void insert(Text_buffer& buffer, char character)
-{
-	buffer.contents.insert(buffer.cursor, 1, character);
-}
-
-static void erase(Text_buffer& buffer)
-{
-	if (buffer.cursor > 0) {
-		--buffer.cursor;
-		buffer.contents.erase(buffer.cursor, 1);
-	}
-}
-
 typedef void (*Command_function)(void);
 
 static void command_none()
@@ -413,22 +336,32 @@ static void command_none()
 
 static void forward_char()
 {
-	move_right(editor.buffer);
+	View& view = editor.view;
+	if (view.cursor != view.buffer->end())
+		++view.cursor;
 }
 
 static void backward_char()
 {
-	move_left(editor.buffer);
+	View& view = editor.view;
+	if (view.cursor != view.buffer->begin())
+		--view.cursor;
 }
 
 static void forward_line()
 {
-	move_down(editor.buffer);
+	View& view = editor.view;
+	Buffer::iterator end_of_line = std::find(view.cursor, view.buffer->end(), '\n');
+	if (end_of_line != view.buffer->end())
+		view.cursor = std::next(end_of_line);
 }
 
 static void backward_line()
 {
-	move_up(editor.buffer);
+	View& view = editor.view;
+	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
+	if (view.cursor != view.buffer->begin())
+		view.cursor = find_backward(view.buffer->begin(), std::prev(view.cursor), '\n');
 }
 
 static bool running;
@@ -491,20 +424,24 @@ static void command_self_insert()
 {
 	char character = last_key_event.uChar.AsciiChar;
 	if (is_print(character)) {
-		insert(editor.buffer, character);
-		++editor.buffer.cursor;
+		editor.buffer.insert(editor.view.cursor, character);
+		++editor.view.cursor;
 	}
 }
 
 static void command_newline()
 {
-	insert(editor.buffer, '\n');
-	++editor.buffer.cursor;
+	editor.buffer.insert(editor.view.cursor, '\n');
+	++editor.view.cursor;
 }
 
 static void command_backspace()
 {
-	erase(editor.buffer);
+	View& view = editor.view;
+	if (view.cursor != view.buffer->begin()) {
+		--view.cursor;
+		view.buffer->erase(view.cursor);
+	}
 }
 
 static Command_function insert_mode[MAX_KEYS];

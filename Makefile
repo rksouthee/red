@@ -17,7 +17,7 @@ LDFLAGS = $(LDFLAGS) /DEBUG
 !ENDIF
 !ENDIF
 
-SOURCES = main.cpp
+SOURCES = main.cpp buffer.cpp
 OBJECTS = $(SOURCES:.cpp=.obj)
 PROGRAM = red
 
