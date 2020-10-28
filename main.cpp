@@ -5,11 +5,6 @@
 #include <vector>
 #include "buffer.hpp"
 
-/*
- * TODO:
- * Respect desired column after insertion
- */
-
 static HANDLE screen_handle;
 
 struct Screen_dimension {
@@ -175,6 +170,7 @@ struct View {
 	Buffer::iterator cursor;
 	Buffer::iterator top_line;
 	int first_column;
+	int column_desired;
 };
 
 template <typename I>
@@ -255,6 +251,7 @@ static void editor_initialize()
 	editor.view.cursor = editor.buffer.begin();
 	editor.view.top_line = editor.buffer.begin();
 	editor.view.first_column = 0;
+	editor.view.column_desired = 0;
 }
 
 static std::string display_state;
@@ -337,31 +334,68 @@ static void command_none()
 static void forward_char()
 {
 	View& view = editor.view;
-	if (view.cursor != view.buffer->end())
+	if (view.cursor != view.buffer->end()) {
 		++view.cursor;
+		view.column_desired = -1;
+	}
 }
 
 static void backward_char()
 {
 	View& view = editor.view;
-	if (view.cursor != view.buffer->begin())
+	if (view.cursor != view.buffer->begin()) {
 		--view.cursor;
+		view.column_desired = -1;
+	}
+}
+
+static int get_column(Buffer::iterator first, Buffer::iterator last)
+{
+	first = find_backward(first, last, '\n');
+	int column = 0;
+	while (first != last) {
+		if (*first == '\t')
+			column += 8 - (column & 0x7);
+		else
+			++column;
+		++first;
+	}
+	return column;
+}
+
+static Buffer::iterator set_column(Buffer::iterator first, Buffer::iterator last, int column)
+{
+	int current = 0;
+	while (first != last && *first != '\n' && current < column) {
+		if (*first == '\t')
+			current += 8 - (current & 0x7);
+		else
+			++current;
+		++first;
+	}
+	return first;
 }
 
 static void forward_line()
 {
 	View& view = editor.view;
+	if (view.column_desired == -1)
+		view.column_desired = get_column(view.buffer->begin(), view.cursor);
 	Buffer::iterator end_of_line = std::find(view.cursor, view.buffer->end(), '\n');
 	if (end_of_line != view.buffer->end())
-		view.cursor = std::next(end_of_line);
+		view.cursor = set_column(std::next(end_of_line), view.buffer->end(), view.column_desired);
 }
 
 static void backward_line()
 {
 	View& view = editor.view;
+	if (view.column_desired == -1)
+		view.column_desired = get_column(view.buffer->begin(), view.cursor);
 	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
-	if (view.cursor != view.buffer->begin())
-		view.cursor = find_backward(view.buffer->begin(), std::prev(view.cursor), '\n');
+	if (view.cursor != view.buffer->begin()) {
+		Buffer::iterator start_of_line = find_backward(view.buffer->begin(), std::prev(view.cursor), '\n');
+		view.cursor = set_column(start_of_line, view.buffer->end(), view.column_desired);
+	}
 }
 
 static bool running;
@@ -473,6 +507,7 @@ static void leave_insert_mode()
 	commands = normal_mode;
 	editor.status_line.clear();
 	screen_cursor_style(Cursor_style::block);
+	editor.view.column_desired = -1;
 }
 
 static void handle_key_event(const KEY_EVENT_RECORD& key_event)
