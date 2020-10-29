@@ -137,25 +137,47 @@ static DWORD file_open(const char* filename, Buffer& buffer)
 	return last_error;
 }
 
+/*
+ * Try to safely save the file by writing to a temporary file and if that succeeds
+ * move the file.
+ */
 static DWORD file_save(Buffer& buffer)
 {
 	DWORD last_error = 0;
-	HANDLE file_handle = CreateFileA(buffer.filename(),
-					 GENERIC_WRITE,
-					 0,
-					 NULL,
-					 CREATE_ALWAYS,
-					 FILE_ATTRIBUTE_NORMAL,
-					 0);
-	if (file_handle != INVALID_HANDLE_VALUE) {
-		auto bytes = static_cast<DWORD>(buffer.size());
-		DWORD bytes_written;
-		if (WriteFile(file_handle, buffer.data(), bytes, &bytes_written, NULL)) {
-			// TODO: write a message on success
+	char temp_path[MAX_PATH];
+	DWORD length = GetTempPathA(MAX_PATH, temp_path);
+	if (length > 0 && length <= MAX_PATH) {
+		char temp_filename[MAX_PATH];
+		if (GetTempFileNameA(temp_path, "RED", 0, temp_filename) != 0) {
+			HANDLE temp_file_handle = CreateFileA(temp_filename,
+							      GENERIC_WRITE,
+							      0,
+							      NULL,
+							      CREATE_ALWAYS,
+							      FILE_ATTRIBUTE_NORMAL,
+							      NULL);
+			if (temp_file_handle != INVALID_HANDLE_VALUE) {
+				auto bytes = static_cast<DWORD>(buffer.size());
+				DWORD bytes_written;
+				if (WriteFile(temp_file_handle, buffer.data(), bytes, &bytes_written, NULL) &&
+				    bytes_written == bytes) {
+					CloseHandle(temp_file_handle);
+					if (MoveFileEx(temp_filename,
+						       buffer.filename(),
+						       MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
+					} else {
+						last_error = GetLastError();
+					}
+				} else {
+					last_error = GetLastError();
+					CloseHandle(temp_file_handle);
+				}
+			} else {
+				last_error = GetLastError();
+			}
 		} else {
 			last_error = GetLastError();
 		}
-		CloseHandle(file_handle);
 	} else {
 		last_error = GetLastError();
 	}
@@ -238,8 +260,12 @@ static Editor_state editor;
 
 static void save()
 {
-	// TODO: check for errors
-	file_save(editor.buffer);
+	DWORD last_error = file_save(editor.buffer);
+	if (last_error == 0) {
+		editor.status_line = "Saved buffer";
+	} else {
+		editor.status_line = "Error saving file";
+	}
 }
 
 static void editor_initialize()
