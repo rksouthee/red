@@ -133,6 +133,10 @@ static DWORD file_open(const char* filename, Buffer& buffer)
 		CloseHandle(file_handle);
 	} else {
 		last_error = GetLastError();
+		if (last_error == ERROR_FILE_NOT_FOUND) {
+			last_error = 0;
+			buffer = Buffer(filename, Gap_buffer());
+		}
 	}
 	return last_error;
 }
@@ -593,7 +597,6 @@ int main(int argc, char **argv)
 		last_error = input_initialize();
 		if (last_error == 0) {
 			const char* filename = argv[1];
-			// TODO: Handle the case when the file doesn't exist
 			last_error = file_open(filename, editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
