@@ -120,7 +120,7 @@ static DWORD file_open(const char* filename, Buffer& buffer)
 		DWORD file_size = GetFileSize(file_handle, NULL);
 		if (file_size != INVALID_FILE_SIZE) {
 			DWORD bytes_read;
-			std::string temp_buffer(static_cast<std::string::size_type>(file_size), 0);
+			Gap_buffer temp_buffer(std::size_t(file_size), 0);
 			// TODO: Check we read the correct number of bytes
 			if (ReadFile(file_handle, &temp_buffer[0], file_size, &bytes_read, NULL)) {
 				buffer = Buffer(filename, std::move(temp_buffer));
