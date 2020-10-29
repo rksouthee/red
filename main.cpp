@@ -157,10 +157,7 @@ static DWORD file_save(Buffer& buffer)
 							      FILE_ATTRIBUTE_NORMAL,
 							      NULL);
 			if (temp_file_handle != INVALID_HANDLE_VALUE) {
-				auto bytes = static_cast<DWORD>(buffer.size());
-				DWORD bytes_written;
-				if (WriteFile(temp_file_handle, buffer.data(), bytes, &bytes_written, NULL) &&
-				    bytes_written == bytes) {
+				if (buffer.write_file(temp_file_handle)) {
 					CloseHandle(temp_file_handle);
 					if (MoveFileEx(temp_filename,
 						       buffer.filename(),
@@ -264,7 +261,7 @@ static void save()
 	if (last_error == 0) {
 		editor.status_line = "Saved buffer";
 	} else {
-		editor.status_line = "Error saving file";
+		editor.status_line = "Error saving buffer";
 	}
 }
 
@@ -429,7 +426,11 @@ static bool running;
 static void quit()
 {
 	// TODO: check if file is modified
-	running = false;
+	if (editor.buffer.modified()) {
+		editor.status_line = "Unsaved changes";
+	} else {
+		running = false;
+	}
 }
 
 static void save();

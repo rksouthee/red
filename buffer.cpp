@@ -106,12 +106,31 @@ Buffer::iterator Buffer::end()
 	return iterator(contents, contents.size());
 }
 
+bool Buffer::modified() const
+{
+	return modified_;
+}
+
+bool Buffer::write_file(HANDLE file_handle)
+{
+	DWORD bytes = static_cast<DWORD>(contents.size());
+	DWORD bytes_written;
+	if (WriteFile(file_handle, contents.data(), bytes, &bytes_written, NULL) &&
+	    bytes_written == bytes) {
+		modified_ = false;
+		return true;
+	}
+	return false;
+}
+
 void Buffer::insert(iterator i, char c)
 {
+	modified_ = true;
 	contents.insert(i.index, 1, c);
 }
 
 void Buffer::erase(iterator i)
 {
+	modified_ = true;
 	contents.erase(i.index, 1);
 }

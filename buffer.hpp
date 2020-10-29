@@ -1,5 +1,6 @@
 #pragma once
 
+#include <windows.h>
 #include <cstddef>
 #include <iterator>
 #include <string>
@@ -18,6 +19,7 @@ public:
 private:
 	const char* name; // TODO: use std::string_view instead?
 	std::string contents;
+	bool modified_ = false;
 
 public:
 	Buffer() = default;
@@ -27,6 +29,10 @@ public:
 	const char* data() const;
 	const char* filename() const;
 	size_type size() const;
+
+	bool modified() const;
+
+	bool write_file(HANDLE file_handle);
 
 	struct iterator {
 		using value_type = char;
