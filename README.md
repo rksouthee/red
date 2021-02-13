@@ -1,6 +1,11 @@
 # red
 
-A text editor for experimenting with modal editing.
+Red is a text editor for the Windows operating system using the command line interface.
+
+![Welcome](welcome.png)
+
+Like Vim, Red is designed as a modal editor, this means that Red is keyboard
+focused, although I hope to add mouse support in the future.
 
 ## Building
 
