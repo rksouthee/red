@@ -427,11 +427,18 @@ static void backward_line()
 
 static bool running;
 
+const int max_quit_attempts = 3;
+static int quit_attempts = max_quit_attempts;
+
 static void quit()
 {
-	// TODO: check if file is modified
 	if (editor.buffer.modified()) {
-		editor.status_line = "Unsaved changes";
+		if (quit_attempts == 0) {
+			running = false;
+		} else {
+			editor.status_line = "Unsaved changes (" + std::to_string(quit_attempts) + ")";
+			--quit_attempts;
+		}
 	} else {
 		running = false;
 	}
@@ -555,7 +562,10 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 			((unsigned)ctrl << 8) |
 			((unsigned)alt << 9) |
 			((unsigned)shift << 10);
-		commands[key]();
+		auto command_fn = commands[key];
+		if (command_fn != quit && command_fn != command_none)
+			quit_attempts = max_quit_attempts;
+		command_fn();
 		// TODO: only redraw if something changed?
 		display_refresh(editor.view);
 	}
