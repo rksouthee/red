@@ -1,4 +1,4 @@
-#include "buffer.hpp"
+#include "buffer.h"
 
 Buffer::Buffer(const char* name, Buffer::Buffer_storage contents) :
 	name(name),

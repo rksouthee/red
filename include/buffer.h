@@ -1,7 +1,8 @@
-#pragma once
+#ifndef RED_BUFFER_H
+#define RED_BUFFER_H
 
 #include <windows.h>
-#include "gap_buffer.hpp"
+#include "gap_buffer.h"
 
 /*
  * We should probably factor our a String_buffer in this example for future cases where
@@ -38,3 +39,5 @@ public:
 	void insert(iterator i, char c);
 	void erase(iterator i);
 };
+
+#endif

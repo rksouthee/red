@@ -1,4 +1,4 @@
-#include "gap_buffer.hpp"
+#include "gap_buffer.h"
 
 #include <algorithm>
 #include <new>

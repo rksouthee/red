@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RED_GAP_BUFFER_H
+#define RED_GAP_BUFFER_H
 
 #include <cstddef>
 #include <iterator>
@@ -87,3 +88,5 @@ public:
 private:
 	void gap_move(iterator i);
 };
+
+#endif

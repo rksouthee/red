@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "buffer.hpp"
+#include "buffer.h"
 
 static HANDLE screen_handle;
 

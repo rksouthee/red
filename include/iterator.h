@@ -1,4 +1,5 @@
-#pragma once
+#ifndef RED_ITERATOR_H
+#define RED_ITERATOR_H
 
 #include <cstddef>
 #include <iterator>
@@ -38,3 +39,4 @@ struct String_iterator {
 	iterator operator--(int);
 };
 
+#endif
