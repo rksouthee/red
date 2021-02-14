@@ -562,10 +562,15 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 			((unsigned)ctrl << 8) |
 			((unsigned)alt << 9) |
 			((unsigned)shift << 10);
+
 		auto command_fn = commands[key];
+		/*
+		 * A hack to allow the user to force quit even if there are unsaved changes in the buffer.
+		 */
 		if (command_fn != quit && command_fn != command_none)
 			quit_attempts = max_quit_attempts;
 		command_fn();
+
 		// TODO: only redraw if something changed?
 		display_refresh(editor.view);
 	}

@@ -38,7 +38,7 @@ where commands can be entered.
 | K   | backward line | Moves the cursor to the previous line. Moves to the beginning when on the first line |
 | L   | forward char | Moves the cursor forward a character. Wraps to the next line if at the end of a line |
 | C-S | save file | Saves the current file. (Control-S) |
-| C-Q | quit | Exits the application. Red will not exit if there are unsaved changes |
+| C-Q | quit | Exits the application. If unsaved changes use multiple times to force quit |
 
 ## Insert Commands
 
@@ -47,12 +47,3 @@ where commands can be entered.
 | Esc | leave insert | Exits insert mode and returns to normal mode |
 | Enter | newline | Inserts a newline character into the buffer |
 | Backspace | backspace | Erases the previous character |
-
-## Future work
-
-* Different data structures for handling the text buffer such as a gap buffer, linked list of
-lines, rope, etc.
-* Regular expressions and searching.
-* Modal editing workflow
-* Syntax highlighting
-* Line wrap, word wrap.
