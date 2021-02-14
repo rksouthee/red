@@ -38,3 +38,4 @@
 *.pdb
 
 build/
+test/

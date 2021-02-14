@@ -9,11 +9,13 @@ focused, although I hope to add mouse support in the future.
 
 ## Building
 
-Open the x64 Native Tools Command Prompt for VS 2019 and in the command prompt, execute
-the command:
+Currently tested using Visual Studio 2019
 
-```sh
-> nmake /nologo
+```bat
+red>md build
+red>cmake-gui .
+red>rem configure and generate build
+red>cmake --build build
 ```
 
 ## Using
@@ -21,7 +23,7 @@ the command:
 Red is to be used on the command line, and requires a file to open or create as an argument.
 
 ```sh
-red hello.txt
+Usage: red <filename>
 ```
 
 There are currently two modes supported, Normal and Insert. The editor initially starts in Normal mode
