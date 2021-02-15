@@ -1,12 +1,10 @@
 # red
 
-Red is a text editor for the Windows operating system using the command line interface.
+Red is a mimimalist text editor for the Windows operating system using the command line interface.
 
 ![Welcome](welcome.png)
 
 [YouTube Demo](https://youtu.be/eNP3JyuvI1I)
-
-Red is a mimimalist text editor for the Windows command line.
 
 ## Building
 
