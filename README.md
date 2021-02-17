@@ -46,3 +46,30 @@ where commands can be entered.
 | Esc | leave insert | Exits insert mode and returns to normal mode |
 | Enter | newline | Inserts a newline character into the buffer |
 | Backspace | backspace | Erases the previous character |
+
+## Todo
+
+### Prompt
+
+It will be useful to prompt the user for input for commands like `quit` and for
+future features like `search` and `open`.
+
+### Search
+
+Prompt the user for a search query, once entered, have the editor jump to the
+correct location. We'll want to support forward and backward search. For
+implementing look into using `std::search`.
+
+### Open
+
+Once the editor has been opened, allow for another file to be read.
+
+### Undo/Redo
+
+Support undo/redo operations. Keep a record of the modifications, including
+cursor positioning.
+
+### Cut/Copy/Paste
+
+Interact with Windows clipboard so support cut, copy and paste. Be aware of
+encoding issues.
