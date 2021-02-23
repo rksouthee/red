@@ -596,8 +596,10 @@ bool evaluate(const Key& key)
 	index |= key.ctrl << 8;
 	index |= key.alt << 9;
 	index |= key.shift << 10;
+	assert(index >= 0 && index < MAX_KEYS);
 
 	Command_function cmd = commands[index];
+	assert(cmd);
 	bool should_exit = false;
 	cmd(key, should_exit);
 	display_refresh(editor.view);
