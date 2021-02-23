@@ -350,7 +350,7 @@ struct Key {
 	char ascii;
 };
 
-#define COMMAND_FUNCTION(name) void name(const Key& key)
+#define COMMAND_FUNCTION(name) void name(const Key& key, bool& should_exit)
 typedef COMMAND_FUNCTION((*Command_function));
 
 COMMAND_FUNCTION(command_none)
@@ -434,22 +434,30 @@ COMMAND_FUNCTION(backward_line)
 	}
 }
 
-static bool running;
-
-const int max_quit_attempts = 3;
-static int quit_attempts = max_quit_attempts;
+Key wait_for_key();
 
 COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified()) {
-		if (quit_attempts == 0) {
-			running = false;
-		} else {
-			editor.status_line = "Unsaved changes (" + std::to_string(quit_attempts) + ")";
-			--quit_attempts;
+		while (true) {
+			// TODO: don't need to redraw the entire screen to display status line
+			editor.status_line = "quit (y/n)";
+			display_refresh(editor.view);
+			Key answer = wait_for_key();
+			if (answer.ascii == 'y' || answer.ascii == 'Y') {
+				should_exit = true;
+				break;
+			} else if (answer.ascii == 'n' || answer.ascii == 'N') {
+				should_exit = false;
+				editor.status_line.clear();
+				break;
+			} else if (key.code == VK_ESCAPE) {
+				editor.status_line.clear();
+				break;
+			}
 		}
 	} else {
-		running = false;
+		should_exit = true;
 	}
 }
 
@@ -570,11 +578,6 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 			((unsigned)shift << 10);
 
 		auto command_fn = commands[key];
-		/*
-		 * A hack to allow the user to force quit even if there are unsaved changes in the buffer.
-		 */
-		if (command_fn != quit && command_fn != command_none)
-			quit_attempts = max_quit_attempts;
 		/* command_fn(); */
 
 		// TODO: only redraw if something changed?
@@ -605,7 +608,7 @@ Key wait_for_key()
 	return {};
 }
 
-void evaluate(const Key& key)
+bool evaluate(const Key& key)
 {
 	assert(key.code >= 0 && key.code < 256);
 	unsigned index = key.code;
@@ -614,10 +617,10 @@ void evaluate(const Key& key)
 	index |= key.shift << 10;
 
 	Command_function cmd = commands[index];
-	if (cmd != quit && cmd != command_none)
-		quit_attempts = max_quit_attempts;
-	cmd(key);
+	bool should_exit = false;
+	cmd(key, should_exit);
 	display_refresh(editor.view);
+	return should_exit;
 }
 
 static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& size_event)
@@ -659,10 +662,10 @@ int main(int argc, char **argv)
 			last_error = file_open(filename, editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
-				running = true;
-				while (running) {
+				while (true) {
 					Key key = wait_for_key();
-					evaluate(key);
+					if (evaluate(key))
+						break;
 					display_refresh(editor.view);
 				}
 			} else {
