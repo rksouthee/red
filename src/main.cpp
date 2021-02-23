@@ -352,13 +352,14 @@ done:
 	screen_cursor(cursor_column, cursor_row);
 }
 
-typedef void (*Command_function)(void);
+#define COMMAND_FUNCTION(name) void name(void)
+typedef COMMAND_FUNCTION((*Command_function));
 
-static void command_none()
+COMMAND_FUNCTION(command_none)
 {
 }
 
-static void forward_char()
+COMMAND_FUNCTION(forward_char)
 {
 	View& view = editor.view;
 	if (view.cursor != view.buffer->end()) {
@@ -367,7 +368,7 @@ static void forward_char()
 	}
 }
 
-static void backward_char()
+COMMAND_FUNCTION(backward_char)
 {
 	View& view = editor.view;
 	if (view.cursor != view.buffer->begin()) {
@@ -403,7 +404,7 @@ static Buffer::iterator set_column(Buffer::iterator first, Buffer::iterator last
 	return first;
 }
 
-static void forward_line()
+COMMAND_FUNCTION(forward_line)
 {
 	View& view = editor.view;
 	if (view.column_desired == -1)
@@ -413,7 +414,7 @@ static void forward_line()
 		view.cursor = set_column(std::next(end_of_line), view.buffer->end(), view.column_desired);
 }
 
-static void backward_line()
+COMMAND_FUNCTION(backward_line)
 {
 	View& view = editor.view;
 	if (view.column_desired == -1)
@@ -430,7 +431,7 @@ static bool running;
 const int max_quit_attempts = 3;
 static int quit_attempts = max_quit_attempts;
 
-static void quit()
+COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified()) {
 		if (quit_attempts == 0) {
@@ -444,9 +445,9 @@ static void quit()
 	}
 }
 
-static void save();
+COMMAND_FUNCTION(save);
 
-static void start_insert_mode();
+COMMAND_FUNCTION(start_insert_mode);
 
 /*
  * 11 bits for key state
@@ -492,7 +493,7 @@ static bool is_print(char character)
 	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
 }
 
-static void command_self_insert()
+COMMAND_FUNCTION(command_self_insert)
 {
 	char character = last_key_event.uChar.AsciiChar;
 	if (is_print(character)) {
@@ -501,13 +502,13 @@ static void command_self_insert()
 	}
 }
 
-static void command_newline()
+COMMAND_FUNCTION(command_newline)
 {
 	editor.buffer.insert(editor.view.cursor, '\n');
 	++editor.view.cursor;
 }
 
-static void command_backspace()
+COMMAND_FUNCTION(command_backspace)
 {
 	View& view = editor.view;
 	if (view.cursor != view.buffer->begin()) {
@@ -518,7 +519,7 @@ static void command_backspace()
 
 static Command_function insert_mode[MAX_KEYS];
 
-static void leave_insert_mode();
+COMMAND_FUNCTION(leave_insert_mode);
 
 static void insert_mode_initialize()
 {
@@ -533,14 +534,14 @@ static void insert_mode_initialize()
 
 static Command_function* commands = normal_mode;
 
-static void start_insert_mode()
+COMMAND_FUNCTION(start_insert_mode)
 {
 	commands = insert_mode;
 	editor.status_line = "--INSERT--";
 	screen_cursor_style(Cursor_style::underline);
 }
 
-static void leave_insert_mode()
+COMMAND_FUNCTION(leave_insert_mode)
 {
 	commands = normal_mode;
 	editor.status_line.clear();
