@@ -254,7 +254,6 @@ done:
 struct Editor_state {
 	Buffer buffer;
 	View view;
-	std::string status_line;
 };
 
 static Editor_state editor;
@@ -278,7 +277,7 @@ static void display_refresh(View& view)
 	reframe(view);
 
 	display_state.clear();
-	display_state.resize(view.width * (view.height + 1), ' ');
+	display_state.resize(view.width * view.height, ' ');
 
 	int cursor_row = 0;
 	int cursor_column = 0;
@@ -334,12 +333,18 @@ static void display_refresh(View& view)
 	}
 
 done:
-	int n = std::min(static_cast<int>(editor.status_line.size()), view.width);
-	for (int i = 0; i < n; ++i) {
-		display_state[view.height * view.width + i] = editor.status_line[i];
-	}
 	screen_putstring(display_state);
 	screen_cursor(cursor_column, cursor_row);
+}
+
+void set_status_line(const char* str)
+{
+	Screen_dimension dimension = screen_dimension();
+	COORD write_coord{0, static_cast<SHORT>(dimension.height - 1)};
+	DWORD chars_written;
+	FillConsoleOutputCharacterA(screen_handle, ' ', dimension.width, write_coord, &chars_written);
+	DWORD length = static_cast<DWORD>(strlen(str));
+	WriteConsoleOutputCharacterA(screen_handle, str, length, write_coord, &chars_written);
 }
 
 struct Key {
@@ -361,9 +366,9 @@ COMMAND_FUNCTION(save)
 {
 	DWORD last_error = file_save(editor.buffer);
 	if (last_error == 0) {
-		editor.status_line = "Saved buffer";
+		set_status_line("Saved buffer");
 	} else {
-		editor.status_line = "Error saving buffer";
+		set_status_line("Error saving buffer");
 	}
 }
 
@@ -440,19 +445,17 @@ COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified()) {
 		while (true) {
-			// TODO: don't need to redraw the entire screen to display status line
-			editor.status_line = "quit (y/n)";
-			display_refresh(editor.view);
+			set_status_line("quit (y/n)");
 			Key answer = wait_for_key();
 			if (answer.ascii == 'y' || answer.ascii == 'Y') {
 				should_exit = true;
 				break;
 			} else if (answer.ascii == 'n' || answer.ascii == 'N') {
 				should_exit = false;
-				editor.status_line.clear();
+				set_status_line("");
 				break;
 			} else if (key.code == VK_ESCAPE) {
-				editor.status_line.clear();
+				set_status_line("");
 				break;
 			}
 		}
@@ -551,38 +554,16 @@ static Command_function* commands = normal_mode;
 COMMAND_FUNCTION(start_insert_mode)
 {
 	commands = insert_mode;
-	editor.status_line = "--INSERT--";
+	set_status_line("--INSERT--");
 	screen_cursor_style(Cursor_style::underline);
 }
 
 COMMAND_FUNCTION(leave_insert_mode)
 {
 	commands = normal_mode;
-	editor.status_line.clear();
+	set_status_line("");
 	screen_cursor_style(Cursor_style::block);
 	editor.view.column_desired = -1;
-}
-
-static void handle_key_event(const KEY_EVENT_RECORD& key_event)
-{
-	if (key_event.bKeyDown) {
-		DWORD ctrl_mask = LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED;
-		DWORD alt_mask = LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED;
-		DWORD shift_mask = SHIFT_PRESSED;
-		bool ctrl = (key_event.dwControlKeyState & ctrl_mask) != 0;
-		bool alt = (key_event.dwControlKeyState & alt_mask) != 0;
-		bool shift = (key_event.dwControlKeyState & shift_mask) != 0;
-		unsigned key = key_event.wVirtualKeyCode |
-			((unsigned)ctrl << 8) |
-			((unsigned)alt << 9) |
-			((unsigned)shift << 10);
-
-		auto command_fn = commands[key];
-		/* command_fn(); */
-
-		// TODO: only redraw if something changed?
-		display_refresh(editor.view);
-	}
 }
 
 Key wait_for_key()
