@@ -259,16 +259,6 @@ struct Editor_state {
 
 static Editor_state editor;
 
-static void save()
-{
-	DWORD last_error = file_save(editor.buffer);
-	if (last_error == 0) {
-		editor.status_line = "Saved buffer";
-	} else {
-		editor.status_line = "Error saving buffer";
-	}
-}
-
 static void editor_initialize()
 {
 	editor.view.buffer = &editor.buffer;
@@ -352,11 +342,29 @@ done:
 	screen_cursor(cursor_column, cursor_row);
 }
 
-#define COMMAND_FUNCTION(name) void name(void)
+struct Key {
+	int code;
+	bool ctrl;
+	bool shift;
+	bool alt;
+	char ascii;
+};
+
+#define COMMAND_FUNCTION(name) void name(const Key& key)
 typedef COMMAND_FUNCTION((*Command_function));
 
 COMMAND_FUNCTION(command_none)
 {
+}
+
+COMMAND_FUNCTION(save)
+{
+	DWORD last_error = file_save(editor.buffer);
+	if (last_error == 0) {
+		editor.status_line = "Saved buffer";
+	} else {
+		editor.status_line = "Error saving buffer";
+	}
 }
 
 COMMAND_FUNCTION(forward_char)
@@ -482,8 +490,6 @@ static void normal_mode_initialize()
 	normal_mode[control('Q')] = quit;
 }
 
-static KEY_EVENT_RECORD last_key_event;
-
 /*
  * XXX: Assuming codepage 850, should correctly use locales and switch to utf-8
  */
@@ -495,7 +501,7 @@ static bool is_print(char character)
 
 COMMAND_FUNCTION(command_self_insert)
 {
-	char character = last_key_event.uChar.AsciiChar;
+	char character = key.ascii;
 	if (is_print(character)) {
 		editor.buffer.insert(editor.view.cursor, character);
 		++editor.view.cursor;
@@ -552,7 +558,6 @@ COMMAND_FUNCTION(leave_insert_mode)
 static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 {
 	if (key_event.bKeyDown) {
-		last_key_event = key_event;
 		DWORD ctrl_mask = LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED;
 		DWORD alt_mask = LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED;
 		DWORD shift_mask = SHIFT_PRESSED;
@@ -570,20 +575,12 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 		 */
 		if (command_fn != quit && command_fn != command_none)
 			quit_attempts = max_quit_attempts;
-		command_fn();
+		/* command_fn(); */
 
 		// TODO: only redraw if something changed?
 		display_refresh(editor.view);
 	}
 }
-
-struct Key {
-	int code;
-	bool ctrl;
-	bool shift;
-	bool alt;
-	char ascii;
-};
 
 Key wait_for_key()
 {
@@ -595,7 +592,7 @@ Key wait_for_key()
 		const KEY_EVENT_RECORD& key_event = input.Event.KeyEvent;
 		if (!key_event.bKeyDown)
 			continue;
-		last_key_event = key_event;
+
 		Key key;
 		key.code = key_event.wVirtualKeyCode;
 		key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
@@ -619,7 +616,7 @@ void evaluate(const Key& key)
 	Command_function cmd = commands[index];
 	if (cmd != quit && cmd != command_none)
 		quit_attempts = max_quit_attempts;
-	cmd();
+	cmd(key);
 	display_refresh(editor.view);
 }
 
