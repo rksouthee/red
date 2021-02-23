@@ -576,6 +576,52 @@ static void handle_key_event(const KEY_EVENT_RECORD& key_event)
 	}
 }
 
+struct Key {
+	int code;
+	bool ctrl;
+	bool shift;
+	bool alt;
+	char ascii;
+};
+
+Key wait_for_key()
+{
+	INPUT_RECORD input;
+	DWORD read;
+	while (ReadConsoleInput(input_handle, &input, 1, &read)) {
+		if (input.EventType != KEY_EVENT)
+			continue;
+		const KEY_EVENT_RECORD& key_event = input.Event.KeyEvent;
+		if (!key_event.bKeyDown)
+			continue;
+		last_key_event = key_event;
+		Key key;
+		key.code = key_event.wVirtualKeyCode;
+		key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+		key.shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
+		key.alt = (key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
+		key.ascii = key_event.uChar.AsciiChar;
+		return key;
+	}
+	// TODO: handle ReadConsoleInput failure
+	return {};
+}
+
+void evaluate(const Key& key)
+{
+	assert(key.code >= 0 && key.code < 256);
+	unsigned index = key.code;
+	index |= key.ctrl << 8;
+	index |= key.alt << 9;
+	index |= key.shift << 10;
+
+	Command_function cmd = commands[index];
+	if (cmd != quit && cmd != command_none)
+		quit_attempts = max_quit_attempts;
+	cmd();
+	display_refresh(editor.view);
+}
+
 static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& size_event)
 {
 	/*
@@ -616,17 +662,10 @@ int main(int argc, char **argv)
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				running = true;
-				INPUT_RECORD input_record;
-				DWORD events_read;
-				while (running && ReadConsoleInput(input_handle, &input_record, 1, &events_read)) {
-					switch (input_record.EventType) {
-					case KEY_EVENT:
-						handle_key_event(input_record.Event.KeyEvent);
-						break;
-					case WINDOW_BUFFER_SIZE_EVENT:
-						handle_window_buffer_size_event(input_record.Event.WindowBufferSizeEvent);
-						break;
-					}
+				while (running) {
+					Key key = wait_for_key();
+					evaluate(key);
+					display_refresh(editor.view);
 				}
 			} else {
 				OutputDebugStringA("Failed to load file\n");
