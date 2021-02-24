@@ -105,6 +105,37 @@ static DWORD input_initialize()
 	return last_error;
 }
 
+struct Key {
+	int code;
+	bool ctrl;
+	bool shift;
+	bool alt;
+	char ascii;
+};
+
+Key wait_for_key()
+{
+	INPUT_RECORD input;
+	DWORD read;
+	while (ReadConsoleInput(input_handle, &input, 1, &read)) {
+		if (input.EventType != KEY_EVENT)
+			continue;
+		const KEY_EVENT_RECORD& key_event = input.Event.KeyEvent;
+		if (!key_event.bKeyDown)
+			continue;
+
+		Key key;
+		key.code = key_event.wVirtualKeyCode;
+		key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+		key.shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
+		key.alt = (key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
+		key.ascii = key_event.uChar.AsciiChar;
+		return key;
+	}
+	// TODO: handle ReadConsoleInput failure
+	return {};
+}
+
 static DWORD file_open(const char* filename, Buffer& buffer)
 {
 	DWORD last_error = 0;
@@ -347,13 +378,36 @@ void set_status_line(const char* str)
 	WriteConsoleOutputCharacterA(screen_handle, str, length, write_coord, &chars_written);
 }
 
-struct Key {
-	int code;
-	bool ctrl;
-	bool shift;
-	bool alt;
-	char ascii;
+enum User_response {
+	yes, no, cancel
 };
+
+User_response prompt_yesno(const char* message)
+{
+	User_response result;
+	while (true) {
+		set_status_line(message);
+		Key response = wait_for_key();
+
+		if (response.ascii == 'y' || response.ascii == 'Y') {
+			result = User_response::yes;
+			break;
+		}
+
+		if (response.ascii == 'n' || response.ascii == 'N') {
+			result = User_response::no;
+			break;
+		}
+
+		if (response.code == VK_ESCAPE) {
+			result = User_response::cancel;
+			break;
+		}
+	}
+
+	set_status_line("");
+	return result;
+}
 
 #define COMMAND_FUNCTION(name) void name(const Key& key, bool& should_exit)
 typedef COMMAND_FUNCTION((*Command_function));
@@ -439,26 +493,11 @@ COMMAND_FUNCTION(backward_line)
 	}
 }
 
-Key wait_for_key();
-
 COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified()) {
-		while (true) {
-			set_status_line("quit (y/n)");
-			Key answer = wait_for_key();
-			if (answer.ascii == 'y' || answer.ascii == 'Y') {
-				should_exit = true;
-				break;
-			} else if (answer.ascii == 'n' || answer.ascii == 'N') {
-				should_exit = false;
-				set_status_line("");
-				break;
-			} else if (key.code == VK_ESCAPE) {
-				set_status_line("");
-				break;
-			}
-		}
+		User_response answer = prompt_yesno("quit (y/n)");
+		should_exit = answer == User_response::yes;
 	} else {
 		should_exit = true;
 	}
@@ -564,29 +603,6 @@ COMMAND_FUNCTION(leave_insert_mode)
 	set_status_line("");
 	screen_cursor_style(Cursor_style::block);
 	editor.view.column_desired = -1;
-}
-
-Key wait_for_key()
-{
-	INPUT_RECORD input;
-	DWORD read;
-	while (ReadConsoleInput(input_handle, &input, 1, &read)) {
-		if (input.EventType != KEY_EVENT)
-			continue;
-		const KEY_EVENT_RECORD& key_event = input.Event.KeyEvent;
-		if (!key_event.bKeyDown)
-			continue;
-
-		Key key;
-		key.code = key_event.wVirtualKeyCode;
-		key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
-		key.shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
-		key.alt = (key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
-		key.ascii = key_event.uChar.AsciiChar;
-		return key;
-	}
-	// TODO: handle ReadConsoleInput failure
-	return {};
 }
 
 bool evaluate(const Key& key)
