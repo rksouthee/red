@@ -136,6 +136,15 @@ Key wait_for_key()
 	return {};
 }
 
+/*
+ * XXX: Assuming codepage 850, should correctly use locales and switch to utf-8
+ */
+static bool is_print(char character)
+{
+	auto uchar = static_cast<unsigned char>(character);
+	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
+}
+
 static DWORD file_open(const char* filename, Buffer& buffer)
 {
 	DWORD last_error = 0;
@@ -409,6 +418,23 @@ User_response prompt_yesno(const char* message)
 	return result;
 }
 
+std::string prompt(const std::string& message)
+{
+	std::string result;
+	while (true) {
+		std::string status_line = message + result;
+		set_status_line(status_line.c_str());
+		Key key = wait_for_key();
+		if (is_print(key.ascii)) {
+			result.push_back(key.ascii);
+		} else if (key.code == VK_RETURN) {
+			break;
+		}
+	}
+	set_status_line("");
+	return result;
+}
+
 #define COMMAND_FUNCTION(name) void name(const Key& key, bool& should_exit)
 typedef COMMAND_FUNCTION((*Command_function));
 
@@ -424,6 +450,38 @@ COMMAND_FUNCTION(save)
 	} else {
 		set_status_line("Error saving buffer");
 	}
+}
+
+COMMAND_FUNCTION(open)
+{
+	std::string filename = prompt("open file: ");
+	if (filename.empty())
+		return;
+
+	if (editor.buffer.modified()) {
+		User_response answer = prompt_yesno("save before leaving? (y/n)");
+		if (answer == User_response::cancel)
+			return;
+		if (answer == User_response::yes) {
+			DWORD last_error = file_save(editor.buffer);
+			if (last_error != 0)
+				set_status_line("Saved buffer");
+			else
+				set_status_line("Error saving buffer");
+		}
+	}
+
+	DWORD last_error = file_open(filename.c_str(), editor.buffer);
+	if (last_error != 0) {
+		set_status_line("Error loading file");
+		return;
+	}
+
+	assert(editor.view.buffer == &editor.buffer);
+	editor.view.cursor = editor.buffer.begin();
+	editor.view.top_line = editor.buffer.begin();
+	editor.view.first_column = 0;
+	editor.view.column_desired = 0;
 }
 
 COMMAND_FUNCTION(forward_char)
@@ -538,15 +596,7 @@ static void normal_mode_initialize()
 	normal_mode['I'] = start_insert_mode;
 	normal_mode[control('S')] = save;
 	normal_mode[control('Q')] = quit;
-}
-
-/*
- * XXX: Assuming codepage 850, should correctly use locales and switch to utf-8
- */
-static bool is_print(char character)
-{
-	auto uchar = static_cast<unsigned char>(character);
-	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
+	normal_mode[control('O')] = open;
 }
 
 COMMAND_FUNCTION(command_self_insert)
