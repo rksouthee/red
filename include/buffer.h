@@ -2,6 +2,7 @@
 #define RED_BUFFER_H
 
 #include <windows.h>
+#include <string>
 #include "gap_buffer.h"
 
 /*
@@ -19,15 +20,15 @@ public:
 	using iterator = Buffer_storage::iterator;
 
 private:
-	const char* name; // TODO: use std::string_view instead?
+	std::string name;
 	Buffer_storage contents;
 	bool modified_ = false;
 
 public:
 	Buffer() = default;
-	Buffer(const char* name, Buffer_storage contents);
+	Buffer(std::string name, Buffer_storage contents);
 
-	const char* filename() const;
+	const std::string& filename() const;
 
 	bool modified() const;
 

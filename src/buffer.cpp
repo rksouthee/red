@@ -1,12 +1,12 @@
 #include "buffer.h"
 
-Buffer::Buffer(const char* name, Buffer::Buffer_storage contents) :
-	name(name),
+Buffer::Buffer(std::string name, Buffer::Buffer_storage contents) :
+	name(std::move(name)),
 	contents(std::move(contents))
 {
 }
 
-const char* Buffer::filename() const
+const std::string& Buffer::filename() const
 {
 	return name;
 }

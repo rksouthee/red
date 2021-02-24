@@ -145,10 +145,10 @@ static bool is_print(char character)
 	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
 }
 
-static DWORD file_open(const char* filename, Buffer& buffer)
+static DWORD file_open(std::string filename, Buffer& buffer)
 {
 	DWORD last_error = 0;
-	HANDLE file_handle = CreateFileA(filename,
+	HANDLE file_handle = CreateFileA(filename.c_str(),
 					 GENERIC_READ | GENERIC_WRITE,
 					 FILE_SHARE_READ,
 					 NULL,
@@ -175,7 +175,7 @@ static DWORD file_open(const char* filename, Buffer& buffer)
 		last_error = GetLastError();
 		if (last_error == ERROR_FILE_NOT_FOUND) {
 			last_error = 0;
-			buffer = Buffer(filename, Gap_buffer());
+			buffer = Buffer(std::move(filename), Gap_buffer());
 		}
 	}
 	return last_error;
@@ -204,7 +204,7 @@ static DWORD file_save(Buffer& buffer)
 				if (buffer.write_file(temp_file_handle)) {
 					CloseHandle(temp_file_handle);
 					if (MoveFileEx(temp_filename,
-						       buffer.filename(),
+						       buffer.filename().c_str(),
 						       MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
 					} else {
 						last_error = GetLastError();
@@ -707,8 +707,7 @@ int main(int argc, char **argv)
 		insert_mode_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
-			const char* filename = argv[1];
-			last_error = file_open(filename, editor.buffer);
+			last_error = file_open(argv[1], editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				while (true) {
