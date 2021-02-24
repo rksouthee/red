@@ -36,8 +36,10 @@ where commands can be entered.
 | J   | forward line | Moves the cursor to next line. Does nothing when on the last line |
 | K   | backward line | Moves the cursor to the previous line. Moves to the beginning when on the first line |
 | L   | forward char | Moves the cursor forward a character. Wraps to the next line if at the end of a line |
-| C-S | save file | Saves the current file. (Control-S) |
+| C-S | save | Saves the current file. (Control-S) |
 | C-Q | quit | Exits the application. If unsaved changes use multiple times to force quit |
+| C-O | open | Opens a new file |
+| C-F | search | Searches for a query in the buffer |
 
 ## Insert Commands
 
@@ -48,21 +50,6 @@ where commands can be entered.
 | Backspace | backspace | Erases the previous character |
 
 ## Todo
-
-### Prompt
-
-It will be useful to prompt the user for input for commands like `quit` and for
-future features like `search` and `open`.
-
-### Search
-
-Prompt the user for a search query, once entered, have the editor jump to the
-correct location. We'll want to support forward and backward search. For
-implementing look into using `std::search`.
-
-### Open
-
-Once the editor has been opened, allow for another file to be read.
 
 ### Undo/Redo
 
