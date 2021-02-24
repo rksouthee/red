@@ -29,6 +29,7 @@ public:
 	Buffer(std::string name, Buffer_storage contents);
 
 	const std::string& filename() const;
+	void filename(std::string name);
 
 	bool modified() const;
 

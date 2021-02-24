@@ -11,6 +11,11 @@ const std::string& Buffer::filename() const
 	return name;
 }
 
+void Buffer::filename(std::string name)
+{
+	this->name = std::move(name);
+}
+
 Buffer::iterator Buffer::begin()
 {
 	return contents.begin();

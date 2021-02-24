@@ -187,6 +187,7 @@ static DWORD file_open(std::string filename, Buffer& buffer)
  */
 static DWORD file_save(Buffer& buffer)
 {
+	assert(!buffer.filename().empty());
 	DWORD last_error = 0;
 	char temp_path[MAX_PATH];
 	DWORD length = GetTempPathA(MAX_PATH, temp_path);
@@ -442,14 +443,28 @@ COMMAND_FUNCTION(command_none)
 {
 }
 
-COMMAND_FUNCTION(save)
+void save_buffer()
 {
+	if (editor.buffer.filename().empty()) {
+		std::string filename = prompt("enter filename: ");
+		if (filename.empty()) {
+			set_status_line("buffer not saved");
+			return;
+		}
+		editor.buffer.filename(std::move(filename));
+	}
+
 	DWORD last_error = file_save(editor.buffer);
 	if (last_error == 0) {
 		set_status_line("Saved buffer");
 	} else {
 		set_status_line("Error saving buffer");
 	}
+}
+
+COMMAND_FUNCTION(save)
+{
+	save_buffer();
 }
 
 COMMAND_FUNCTION(open)
@@ -462,13 +477,8 @@ COMMAND_FUNCTION(open)
 		User_response answer = prompt_yesno("save before leaving? (y/n)");
 		if (answer == User_response::cancel)
 			return;
-		if (answer == User_response::yes) {
-			DWORD last_error = file_save(editor.buffer);
-			if (last_error != 0)
-				set_status_line("Saved buffer");
-			else
-				set_status_line("Error saving buffer");
-		}
+		if (answer == User_response::yes)
+			save_buffer();
 	}
 
 	DWORD last_error = file_open(filename.c_str(), editor.buffer);
@@ -692,11 +702,6 @@ static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& siz
 
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
-		std::cerr << "Usage: RED <filename>" << std::endl;
-		return -1;
-	}
-
 	SetConsoleTitle("RED");
 	DWORD last_error = screen_initialize();
 
@@ -707,7 +712,8 @@ int main(int argc, char **argv)
 		insert_mode_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
-			last_error = file_open(argv[1], editor.buffer);
+			if (argc == 2)
+				last_error = file_open(argv[1], editor.buffer);
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				while (true) {
