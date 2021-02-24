@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <cassert>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -494,6 +495,15 @@ COMMAND_FUNCTION(open)
 	editor.view.column_desired = 0;
 }
 
+COMMAND_FUNCTION(search)
+{
+	std::string query = prompt("search: ");
+	View& view = editor.view;
+	auto iter = std::search(view.cursor, view.buffer->end(), query.begin(), query.end());
+	if (iter != view.buffer->end())
+		view.cursor = iter;
+}
+
 COMMAND_FUNCTION(forward_char)
 {
 	View& view = editor.view;
@@ -607,6 +617,7 @@ static void normal_mode_initialize()
 	normal_mode[control('S')] = save;
 	normal_mode[control('Q')] = quit;
 	normal_mode[control('O')] = open;
+	normal_mode[control('F')] = search;
 }
 
 COMMAND_FUNCTION(command_self_insert)
