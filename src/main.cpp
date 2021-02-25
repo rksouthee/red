@@ -5,75 +5,7 @@
 #include <string>
 #include <vector>
 #include "buffer.h"
-
-static HANDLE screen_handle;
-
-struct Screen_dimension {
-	int width;
-	int height;
-};
-
-static DWORD screen_initialize()
-{
-	DWORD last_error = 0;
-	screen_handle = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE,
-						  FILE_SHARE_WRITE,
-						  NULL,
-						  CONSOLE_TEXTMODE_BUFFER,
-						  NULL);
-	if (screen_handle != INVALID_HANDLE_VALUE) {
-		if (SetConsoleActiveScreenBuffer(screen_handle)) {
-		} else {
-			last_error = GetLastError();
-		}
-	} else {
-		last_error = GetLastError();
-	}
-
-	return last_error;
-}
-
-static Screen_dimension screen_dimension()
-{
-	CONSOLE_SCREEN_BUFFER_INFO csbi;
-	GetConsoleScreenBufferInfo(screen_handle, &csbi);
-	Screen_dimension dimension;
-	dimension.width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-	dimension.height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-	return dimension;
-}
-
-static void screen_cursor(int column, int row)
-{
-	COORD position;
-	position.X = static_cast<SHORT>(column);
-	position.Y = static_cast<SHORT>(row);
-	SetConsoleCursorPosition(screen_handle, position);
-}
-
-enum class Cursor_style {
-	block,
-	underline
-};
-
-static void screen_cursor_style(Cursor_style style)
-{
-	CONSOLE_CURSOR_INFO cursor_info;
-	if (style == Cursor_style::block)
-		cursor_info.dwSize = 100;
-	else
-		cursor_info.dwSize = 1;
-	cursor_info.bVisible = true;
-	SetConsoleCursorInfo(screen_handle, &cursor_info);
-}
-
-static void screen_putstring(const std::string& str)
-{
-	DWORD length = static_cast<DWORD>(str.size());
-	COORD write_coord{0, 0};
-	DWORD chars_written;
-	WriteConsoleOutputCharacterA(screen_handle, str.data(), length, write_coord, &chars_written);
-}
+#include "screen.h"
 
 static HANDLE input_handle;
 
@@ -375,6 +307,7 @@ static void display_refresh(View& view)
 	}
 
 done:
+	screen_cursor(0, 0);
 	screen_putstring(display_state);
 	screen_cursor(cursor_column, cursor_row);
 }
@@ -382,12 +315,10 @@ done:
 int set_status_line(const char* str)
 {
 	Screen_dimension dimension = screen_dimension();
-	COORD write_coord{0, static_cast<SHORT>(dimension.height - 1)};
-	DWORD chars_written;
-	FillConsoleOutputCharacterA(screen_handle, ' ', dimension.width, write_coord, &chars_written);
-	DWORD length = static_cast<DWORD>(strlen(str));
-	WriteConsoleOutputCharacterA(screen_handle, str, length, write_coord, &chars_written);
-	return chars_written;
+	screen_cursor(0, dimension.height - 1);
+	screen_putstring(str);
+	screen_clear_end_of_line();
+	return static_cast<int>(std::strlen(str));
 }
 
 enum User_response {
@@ -421,33 +352,13 @@ User_response prompt_yesno(const char* message)
 	return result;
 }
 
-/*
- * Render the input being typed by the user. Since the prompt message (e.g. "Enter filename: ")
- * doens't change during the editing, we can pass the `column` as the length of that part, and
- * only worry about what the user is typing.
- *
- * To prevent flickering, we only update the parts of the prompt that are different to what is
- * displayed on the screen.
- */
 void render_prompt(int column, const std::string& prompt, std::string::size_type cursor)
 {
 	Screen_dimension dimension = screen_dimension();
-	COORD coord{static_cast<SHORT>(column), static_cast<SHORT>(dimension.height - 1)};
-
-	std::string old_state(dimension.width - column, ' ');
-	DWORD chars_read;
-	// TODO: guard against invalid index with old_state[0]
-	ReadConsoleOutputCharacterA(screen_handle, &old_state[0], dimension.width - column, coord, &chars_read);
-	DWORD chars_written;
-
-	for (std::string::size_type i{0}; i != prompt.size(); ++i) {
-		if (prompt[i] != old_state[i])
-			WriteConsoleOutputCharacterA(screen_handle, &prompt[i], 1, coord, &chars_written);
-		++coord.X;
-	}
-
-	FillConsoleOutputCharacterA(screen_handle, ' ', dimension.width - coord.X, coord, &chars_written);
-	screen_cursor(column + static_cast<int>(cursor), dimension.height - 1);
+	screen_cursor(column, dimension.height - 1);
+	screen_putstring(prompt.c_str());
+	screen_clear_end_of_line();
+	screen_column(column + static_cast<int>(cursor));
 }
 
 std::string prompt(const std::string& message)
