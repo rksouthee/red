@@ -8,6 +8,9 @@ add_executable(red
 	src/buffer.cpp
 	src/screen.cpp
 	src/input.cpp
+	src/file.cpp
+	src/display.cpp
+	src/prompt.cpp
 	)
 target_include_directories(red PRIVATE include)
 target_compile_definitions(red PUBLIC -DNOMINMAX)
