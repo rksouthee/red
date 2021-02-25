@@ -657,6 +657,7 @@ static void insert_mode_initialize()
 	insert_mode[VK_ESCAPE] = leave_insert_mode;
 	insert_mode[VK_RETURN] = command_newline;
 	insert_mode[VK_BACK] = command_backspace;
+	insert_mode[control(0xDB)] = leave_insert_mode;
 }
 
 static Command_function* commands = normal_mode;
