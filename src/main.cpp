@@ -12,28 +12,14 @@
 #include "utility.h"
 #include "prompt.h"
 
-static Editor_state editor;
-
-static void editor_initialize()
-{
-	editor.view.buffer = &editor.buffer;
-	Screen_dimension size = screen_dimension();
-	editor.view.width = size.width;
-	editor.view.height = size.height - 1;
-	editor.view.cursor = editor.buffer.begin();
-	editor.view.top_line = editor.buffer.begin();
-	editor.view.first_column = 0;
-	editor.view.column_desired = 0;
-}
-
-#define COMMAND_FUNCTION(name) void name(const Key& key, bool& should_exit)
+#define COMMAND_FUNCTION(name) void name(Editor_state& editor, const Key& key, bool& should_exit)
 typedef COMMAND_FUNCTION((*Command_function));
 
 COMMAND_FUNCTION(command_none)
 {
 }
 
-void save_buffer()
+void save_buffer(Editor_state& editor)
 {
 	if (editor.buffer.filename().empty()) {
 		std::string filename = prompt("enter filename: ");
@@ -54,7 +40,7 @@ void save_buffer()
 
 COMMAND_FUNCTION(save)
 {
-	save_buffer();
+	save_buffer(editor);
 }
 
 COMMAND_FUNCTION(open)
@@ -68,7 +54,7 @@ COMMAND_FUNCTION(open)
 		if (answer == User_response::cancel)
 			return;
 		if (answer == User_response::yes)
-			save_buffer();
+			save_buffer(editor);
 	}
 
 	DWORD last_error = file_open(filename.c_str(), editor.buffer);
@@ -266,7 +252,7 @@ COMMAND_FUNCTION(leave_insert_mode)
 	editor.view.column_desired = -1;
 }
 
-bool evaluate(const Key& key)
+bool evaluate(Editor_state& editor, const Key& key)
 {
 	assert(key.code >= 0 && key.code < 256);
 	unsigned index = key.code;
@@ -278,12 +264,12 @@ bool evaluate(const Key& key)
 	Command_function cmd = commands[index];
 	assert(cmd);
 	bool should_exit = false;
-	cmd(key, should_exit);
+	cmd(editor, key, should_exit);
 	display_refresh(editor.view);
 	return should_exit;
 }
 
-static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& size_event)
+static void handle_window_buffer_size_event(Editor_state& editor, const WINDOW_BUFFER_SIZE_RECORD& size_event)
 {
 	/*
 	 * When the console window is resized, if the height of the screen is increased
@@ -301,13 +287,27 @@ static void handle_window_buffer_size_event(const WINDOW_BUFFER_SIZE_RECORD& siz
 	display_refresh(editor.view);
 }
 
+static void editor_initialize(Editor_state& editor)
+{
+	editor.view.buffer = &editor.buffer;
+	Screen_dimension size = screen_dimension();
+	editor.view.width = size.width;
+	editor.view.height = size.height - 1;
+	editor.view.cursor = editor.buffer.begin();
+	editor.view.top_line = editor.buffer.begin();
+	editor.view.first_column = 0;
+	editor.view.column_desired = 0;
+}
+
 int main(int argc, char **argv)
 {
 	SetConsoleTitle("RED");
 	DWORD last_error = screen_initialize();
 
+	Editor_state editor;
+
 	if (last_error == 0) {
-		editor_initialize();
+		editor_initialize(editor);
 		screen_cursor_style(Cursor_style::block);
 		normal_mode_initialize();
 		insert_mode_initialize();
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 				display_refresh(editor.view);
 				while (true) {
 					Key key = wait_for_key();
-					if (evaluate(key))
+					if (evaluate(editor, key))
 						break;
 					display_refresh(editor.view);
 				}
