@@ -379,7 +379,7 @@ done:
 	screen_cursor(cursor_column, cursor_row);
 }
 
-void set_status_line(const char* str)
+int set_status_line(const char* str)
 {
 	Screen_dimension dimension = screen_dimension();
 	COORD write_coord{0, static_cast<SHORT>(dimension.height - 1)};
@@ -387,6 +387,7 @@ void set_status_line(const char* str)
 	FillConsoleOutputCharacterA(screen_handle, ' ', dimension.width, write_coord, &chars_written);
 	DWORD length = static_cast<DWORD>(strlen(str));
 	WriteConsoleOutputCharacterA(screen_handle, str, length, write_coord, &chars_written);
+	return chars_written;
 }
 
 enum User_response {
@@ -420,16 +421,62 @@ User_response prompt_yesno(const char* message)
 	return result;
 }
 
+/*
+ * Render the input being typed by the user. Since the prompt message (e.g. "Enter filename: ")
+ * doens't change during the editing, we can pass the `column` as the length of that part, and
+ * only worry about what the user is typing.
+ *
+ * To prevent flickering, we only update the parts of the prompt that are different to what is
+ * displayed on the screen.
+ */
+void render_prompt(int column, const std::string& prompt, std::string::size_type cursor)
+{
+	Screen_dimension dimension = screen_dimension();
+	COORD coord{static_cast<SHORT>(column), static_cast<SHORT>(dimension.height - 1)};
+
+	std::string old_state(dimension.width - column, ' ');
+	DWORD chars_read;
+	// TODO: guard against invalid index with old_state[0]
+	ReadConsoleOutputCharacterA(screen_handle, &old_state[0], dimension.width - column, coord, &chars_read);
+	DWORD chars_written;
+
+	for (std::string::size_type i{0}; i != prompt.size(); ++i) {
+		if (prompt[i] != old_state[i])
+			WriteConsoleOutputCharacterA(screen_handle, &prompt[i], 1, coord, &chars_written);
+		++coord.X;
+	}
+
+	FillConsoleOutputCharacterA(screen_handle, ' ', dimension.width - coord.X, coord, &chars_written);
+	screen_cursor(column + static_cast<int>(cursor), dimension.height - 1);
+}
+
 std::string prompt(const std::string& message)
 {
 	std::string result;
+	std::string::size_type position = 0;
+	auto prompt_start = set_status_line(message.c_str());
 	while (true) {
-		std::string status_line = message + result;
-		set_status_line(status_line.c_str());
+		assert(position <= result.size());
+		render_prompt(prompt_start, result, position);
 		Key key = wait_for_key();
 		if (is_print(key.ascii)) {
-			result.push_back(key.ascii);
+			result.insert(position, 1, key.ascii);
+			++position;
 		} else if (key.code == VK_RETURN) {
+			break;
+		} else if (key.code == VK_LEFT) {
+			if (position > 0)
+				--position;
+		} else if (key.code == VK_RIGHT) {
+			if (position < result.size())
+				++position;
+		} else if (key.code == VK_BACK) {
+			if (position > 0) {
+				--position;
+				result.erase(position, 1);
+			}
+		} else if (key.code == VK_ESCAPE || (key.code == 0xDB && key.ctrl)) {
+			result.clear();
 			break;
 		}
 	}
