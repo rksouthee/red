@@ -59,10 +59,12 @@ bool evaluate(Editor_state& editor, const Key& key)
 	assert(index >= 0 && index < MAX_KEYS);
 
 	Command_function cmd = commands[index];
-	assert(cmd);
 	bool should_exit = false;
-	cmd(editor, key, should_exit);
-	display_refresh(editor.view);
+	assert(cmd);
+	if (cmd != command_none) {
+		cmd(editor, key, should_exit);
+		display_refresh(editor.view);
+	}
 	return should_exit;
 }
 

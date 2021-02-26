@@ -66,7 +66,6 @@ int main(int argc, char **argv)
 					Key key = wait_for_key();
 					if (evaluate(editor, key))
 						break;
-					display_refresh(editor.view);
 				}
 			} else {
 				OutputDebugStringA("Failed to load file\n");
