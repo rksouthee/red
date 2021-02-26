@@ -11,6 +11,7 @@ add_executable(red
 	src/file.cpp
 	src/display.cpp
 	src/prompt.cpp
+	src/command.cpp
 	)
 target_include_directories(red PRIVATE include)
 target_compile_definitions(red PUBLIC -DNOMINMAX)
