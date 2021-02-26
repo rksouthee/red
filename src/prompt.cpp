@@ -35,10 +35,12 @@ User_response prompt_yesno(const char* message)
 void render_prompt(int column, const std::string& prompt, std::string::size_type cursor)
 {
 	Screen_dimension dimension = screen_dimension();
+	screen_cursor_visible(false);
 	screen_cursor(column, dimension.height - 1);
 	screen_putstring(prompt.c_str());
 	screen_clear_end_of_line();
 	screen_column(column + static_cast<int>(cursor));
+	screen_cursor_visible(true);
 }
 
 std::string prompt(const std::string& message)
