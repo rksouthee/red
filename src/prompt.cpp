@@ -45,7 +45,8 @@ std::string prompt(const std::string& message)
 {
 	std::string result;
 	std::string::size_type position = 0;
-	auto prompt_start = set_status_line(message.c_str());
+	set_status_line(message);
+	auto prompt_start = static_cast<int>(message.size());
 	while (true) {
 		assert(position <= result.size());
 		render_prompt(prompt_start, result, position);

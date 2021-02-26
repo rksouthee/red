@@ -2,10 +2,10 @@
 #define RED_DISPLAY_H
 
 #include "editor.h"
+#include <string_view>
 
 void display_refresh(View& view);
 
-// TODO: Use string_view instead
-int set_status_line(const char* str);
+void set_status_line(std::string_view str);
 
 #endif

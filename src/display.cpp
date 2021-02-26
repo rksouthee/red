@@ -115,12 +115,11 @@ done:
 	screen_cursor_visible(true);
 }
 
-int set_status_line(const char* str)
+void set_status_line(std::string_view str)
 {
 	Screen_dimension dimension = screen_dimension();
 	screen_cursor(0, dimension.height - 1);
 	screen_putstring(str);
 	screen_clear_end_of_line();
-	return static_cast<int>(std::strlen(str));
 }
 
