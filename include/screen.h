@@ -2,7 +2,7 @@
 #define RED_SCREEN_H
 
 #include <Windows.h>
-#include <string>
+#include <string_view>
 
 struct Screen_dimension {
 	int width;
@@ -24,7 +24,7 @@ Screen_dimension screen_dimension();
 /*
  * Writes the string at the cursor position, once printed the cursor is placed after the string
  */
-void screen_putstring(const std::string& str);
+void screen_putstring(std::string_view str);
 
 /*
  * Set the cursor to the specified column and row.  The origin of the

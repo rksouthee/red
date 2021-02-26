@@ -15,3 +15,4 @@ add_executable(red
 	)
 target_include_directories(red PRIVATE include)
 target_compile_definitions(red PUBLIC -DNOMINMAX)
+target_compile_features(red PRIVATE cxx_std_17)

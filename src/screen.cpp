@@ -59,7 +59,7 @@ void screen_cursor_style(Cursor_style style)
 	SetConsoleCursorInfo(screen_handle, &cursor_info);
 }
 
-void screen_putstring(const std::string& str)
+void screen_putstring(std::string_view str)
 {
 	DWORD length = static_cast<DWORD>(str.size());
 	DWORD chars_written;
