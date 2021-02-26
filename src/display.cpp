@@ -108,9 +108,11 @@ void display_refresh(View& view)
 	}
 
 done:
+	screen_cursor_visible(false);
 	screen_cursor(0, 0);
 	screen_putstring(display_state);
 	screen_cursor(cursor_column, cursor_row);
+	screen_cursor_visible(true);
 }
 
 int set_status_line(const char* str)

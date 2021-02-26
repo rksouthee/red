@@ -38,4 +38,6 @@ void screen_clear_end_of_line();
 
 void screen_cursor_style(Cursor_style style);
 
+void screen_cursor_visible(bool visible);
+
 #endif

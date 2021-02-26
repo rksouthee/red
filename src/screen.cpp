@@ -75,3 +75,11 @@ void screen_clear_end_of_line()
 	DWORD chars_written;
 	FillConsoleOutputCharacterA(screen_handle, ' ', width - position.X, position, &chars_written);
 }
+
+void screen_cursor_visible(bool visible)
+{
+	CONSOLE_CURSOR_INFO cursor;
+	GetConsoleCursorInfo(screen_handle, &cursor);
+	cursor.bVisible = visible;
+	SetConsoleCursorInfo(screen_handle, &cursor);
+}
