@@ -5,7 +5,7 @@
 #include "screen.h"
 #include "utility.h"
 
-User_response prompt_yesno(const char* message)
+User_response prompt_yesno(std::string_view message)
 {
 	User_response result;
 	while (true) {
@@ -32,18 +32,18 @@ User_response prompt_yesno(const char* message)
 	return result;
 }
 
-void render_prompt(int column, const std::string& prompt, std::string::size_type cursor)
+void render_prompt(int column, std::string_view prompt, std::string::size_type cursor)
 {
 	Screen_dimension dimension = screen_dimension();
 	screen_cursor_visible(false);
 	screen_cursor(column, dimension.height - 1);
-	screen_putstring(prompt.c_str());
+	screen_putstring(prompt);
 	screen_clear_end_of_line();
 	screen_column(column + static_cast<int>(cursor));
 	screen_cursor_visible(true);
 }
 
-std::string prompt(const std::string& message)
+std::string prompt(std::string_view message)
 {
 	std::string result;
 	std::string::size_type position = 0;
