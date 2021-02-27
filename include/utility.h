@@ -9,7 +9,7 @@
 inline bool is_print(char character)
 {
 	auto uchar = static_cast<unsigned char>(character);
-	return uchar == '\t' || (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
+	return (uchar >= ' ' && uchar <= '~') || (uchar >= 128 && uchar <= 254);
 }
 
 template <typename I>

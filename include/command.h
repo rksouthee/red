@@ -42,5 +42,6 @@ COMMAND_FUNCTION(search);
 COMMAND_FUNCTION(command_self_insert);
 COMMAND_FUNCTION(command_newline);
 COMMAND_FUNCTION(command_backspace);
+COMMAND_FUNCTION(command_tab);
 
 #endif

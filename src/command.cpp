@@ -1,4 +1,3 @@
-
 #include <cassert>
 #include <algorithm>
 #include "command.h"
@@ -39,6 +38,7 @@ static void insert_mode_initialize()
 	insert_mode[VK_RETURN] = command_newline;
 	insert_mode[VK_BACK] = command_backspace;
 	insert_mode[control(0xDB)] = leave_insert_mode;
+	insert_mode[VK_TAB] = command_tab;
 }
 
 static Command_function* commands = normal_mode;
@@ -231,6 +231,12 @@ COMMAND_FUNCTION(command_backspace)
 		--view.cursor;
 		view.buffer->erase(view.cursor);
 	}
+}
+
+COMMAND_FUNCTION(command_tab)
+{
+	editor.buffer.insert(editor.view.cursor, '\t');
+	++editor.view.cursor;
 }
 
 COMMAND_FUNCTION(start_insert_mode)
