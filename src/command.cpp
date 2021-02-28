@@ -39,7 +39,12 @@ static void normal_mode_initialize()
 	normal_mode['H'] = backward_char;
 	normal_mode['J'] = forward_line;
 	normal_mode['K'] = backward_line;
+	normal_mode[VK_HOME] = goto_beginning_of_line;
+	normal_mode[control(VK_HOME)] = goto_beginning_of_file;
+	normal_mode[VK_END] = goto_end_of_line;
+	normal_mode[control(VK_END)] = goto_end_of_file;
 	normal_mode['L'] = forward_char;
+	normal_mode['W'] = forward_word;
 	normal_mode['I'] = start_insert_mode;
 	normal_mode[VK_OEM_2] = search_forward;
 
@@ -154,6 +159,19 @@ COMMAND_FUNCTION(forward_char)
 	}
 }
 
+COMMAND_FUNCTION(forward_word)
+{
+	View& view = editor.view;
+	if (view.cursor == view.buffer->end())
+		return;
+
+	const auto pred = [] (char x) -> bool { return std::isalpha(x); };
+	Buffer::iterator iter = std::find_if_not(view.cursor, view.buffer->end(), pred);
+	iter = std::find_if(iter, view.buffer->end(), pred);
+	view.cursor = iter;
+	view.column_desired = -1;
+}
+
 COMMAND_FUNCTION(backward_char)
 {
 	View& view = editor.view;
@@ -212,6 +230,34 @@ COMMAND_FUNCTION(backward_line)
 	}
 }
 
+COMMAND_FUNCTION(goto_beginning_of_line)
+{
+	View& view = editor.view;
+	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
+	view.column_desired = 0;
+}
+
+COMMAND_FUNCTION(goto_beginning_of_file)
+{
+	View& view = editor.view;
+	view.cursor = view.buffer->begin();
+	view.column_desired = 0;
+}
+
+COMMAND_FUNCTION(goto_end_of_line)
+{
+	View& view = editor.view;
+	view.cursor = std::find(view.cursor, view.buffer->end(), '\n');
+	view.column_desired = get_column(view.buffer->begin(), view.cursor);
+}
+
+COMMAND_FUNCTION(goto_end_of_file)
+{
+	View& view = editor.view;
+	view.cursor = view.buffer->end();
+	view.column_desired = get_column(view.buffer->begin(), view.cursor);
+}
+
 COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified) {
@@ -266,4 +312,3 @@ COMMAND_FUNCTION(leave_insert_mode)
 	screen_cursor_style(Cursor_style::block);
 	editor.view.column_desired = -1;
 }
-
