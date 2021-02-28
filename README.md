@@ -36,10 +36,10 @@ where commands can be entered.
 | J   | forward line | Moves the cursor to next line. Does nothing when on the last line |
 | K   | backward line | Moves the cursor to the previous line. Moves to the beginning when on the first line |
 | L   | forward char | Moves the cursor forward a character. Wraps to the next line if at the end of a line |
-| C-S | save | Saves the current file. (Control-S) |
-| C-Q | quit | Exits the application. If unsaved changes use multiple times to force quit |
-| C-O | open | Opens a new file |
-| C-F | search | Searches for a query in the buffer |
+| ^X ^S | save | Saves the current file. |
+| ^X ^C | quit | Exits the application. If unsaved changes use multiple times to force quit |
+| ^X ^F | open | Opens a new file |
+| / | search | Searches for a query in the buffer |
 
 ## Insert Commands
 
@@ -48,6 +48,7 @@ where commands can be entered.
 | Esc | leave insert | Exits insert mode and returns to normal mode |
 | Enter | newline | Inserts a newline character into the buffer |
 | Backspace | backspace | Erases the previous character |
+| Tab | insert tab | Inserts a tab character |
 
 ## Todo
 

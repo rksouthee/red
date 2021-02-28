@@ -8,11 +8,32 @@
 #include "screen.h"
 
 static Command_function normal_mode[MAX_KEYS];
+static Command_function ctrlx_mode[MAX_KEYS];
+
+static unsigned key_to_index(const Key& key)
+{
+	assert(key.code >= 0 && key.code < 256);
+	unsigned index = key.code;
+	index |= key.ctrl << 8;
+	index |= key.alt << 9;
+	index |= key.shift << 10;
+	assert(index >= 0 && index < MAX_KEYS);
+	return index;
+}
+
+COMMAND_FUNCTION(ctrlx_command)
+{
+	Key new_key = wait_for_key();
+	unsigned index = key_to_index(new_key);
+	Command_function cmd = ctrlx_mode[index];
+	cmd(editor, new_key, should_exit);
+}
 
 static void normal_mode_initialize()
 {
 	for (int i = 0; i < MAX_KEYS; ++i) {
 		normal_mode[i] = none;
+		ctrlx_mode[i] = none;
 	}
 
 	normal_mode['H'] = backward_char;
@@ -20,10 +41,12 @@ static void normal_mode_initialize()
 	normal_mode['K'] = backward_line;
 	normal_mode['L'] = forward_char;
 	normal_mode['I'] = start_insert_mode;
-	normal_mode[control('S')] = write_file;
-	normal_mode[control('Q')] = quit;
-	normal_mode[control('O')] = find_file;
-	normal_mode[control('F')] = search_forward;
+	normal_mode[VK_OEM_2] = search_forward;
+
+	normal_mode[control('X')] = ctrlx_command;
+	ctrlx_mode[control('S')] = write_file;
+	ctrlx_mode[control('C')] = quit;
+	ctrlx_mode[control('F')] = find_file;
 }
 
 static Command_function insert_mode[MAX_KEYS];
@@ -51,13 +74,7 @@ void commands_initialize()
 
 bool evaluate(Editor_state& editor, const Key& key)
 {
-	assert(key.code >= 0 && key.code < 256);
-	unsigned index = key.code;
-	index |= key.ctrl << 8;
-	index |= key.alt << 9;
-	index |= key.shift << 10;
-	assert(index >= 0 && index < MAX_KEYS);
-
+	unsigned index = key_to_index(key);
 	Command_function cmd = commands[index];
 	bool should_exit = false;
 	assert(cmd);
@@ -102,10 +119,8 @@ COMMAND_FUNCTION(find_file)
 
 	if (editor.buffer.modified()) {
 		User_response answer = prompt_yesno("Buffer modified. Leave anyway (y/n)? ");
-		if (answer == User_response::cancel)
+		if (answer != User_response::yes)
 			return;
-		if (answer == User_response::yes)
-			save_buffer(editor);
 	}
 
 	DWORD last_error = file_open(filename.c_str(), editor.buffer);
