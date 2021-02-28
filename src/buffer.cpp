@@ -1,21 +1,5 @@
 #include "buffer.h"
 
-Buffer::Buffer(std::string name, Buffer::Buffer_storage contents) :
-	name(std::move(name)),
-	contents(std::move(contents))
-{
-}
-
-const std::string& Buffer::filename() const
-{
-	return name;
-}
-
-void Buffer::filename(std::string name)
-{
-	this->name = std::move(name);
-}
-
 Buffer::iterator Buffer::begin()
 {
 	return contents.begin();
@@ -24,11 +8,6 @@ Buffer::iterator Buffer::begin()
 Buffer::iterator Buffer::end()
 {
 	return contents.end();
-}
-
-bool Buffer::modified() const
-{
-	return modified_;
 }
 
 bool Buffer::write_file(HANDLE file_handle)
@@ -41,7 +20,7 @@ bool Buffer::write_file(HANDLE file_handle)
 		data = contents.begin1();
 		bytes = static_cast<DWORD>(contents.end1() - data);
 		if (WriteFile(file_handle, data, bytes, &bytes_written, NULL) && bytes_written == bytes) {
-			modified_ = false;
+			modified = false;
 			result = true;
 		} else {
 		}
@@ -52,12 +31,12 @@ bool Buffer::write_file(HANDLE file_handle)
 
 void Buffer::insert(iterator i, char c)
 {
-	modified_ = true;
+	modified = true;
 	contents.insert(i, 1, c);
 }
 
 void Buffer::erase(iterator i)
 {
-	modified_ = true;
+	modified = true;
 	contents.erase(i, 1);
 }

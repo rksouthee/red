@@ -19,7 +19,7 @@ DWORD file_open(std::string filename, Buffer& buffer)
 			Gap_buffer temp_buffer(std::size_t(file_size), 0);
 			// TODO: Check we read the correct number of bytes
 			if (ReadFile(file_handle, &temp_buffer[0], file_size, &bytes_read, NULL)) {
-				buffer = Buffer(filename, std::move(temp_buffer));
+				buffer = Buffer{std::move(filename), std::move(temp_buffer), false};
 			} else {
 				last_error = GetLastError();
 			}
@@ -31,7 +31,7 @@ DWORD file_open(std::string filename, Buffer& buffer)
 		last_error = GetLastError();
 		if (last_error == ERROR_FILE_NOT_FOUND) {
 			last_error = 0;
-			buffer = Buffer(std::move(filename), Gap_buffer());
+			buffer = Buffer{std::move(filename), Gap_buffer{}, false};
 		}
 	}
 	return last_error;
@@ -43,7 +43,7 @@ DWORD file_open(std::string filename, Buffer& buffer)
  */
 DWORD file_save(Buffer& buffer)
 {
-	assert(!buffer.filename().empty());
+	assert(!buffer.name.empty());
 	DWORD last_error = 0;
 	char temp_path[MAX_PATH];
 	DWORD length = GetTempPathA(MAX_PATH, temp_path);
@@ -61,7 +61,7 @@ DWORD file_save(Buffer& buffer)
 				if (buffer.write_file(temp_file_handle)) {
 					CloseHandle(temp_file_handle);
 					if (MoveFileEx(temp_filename,
-						       buffer.filename().c_str(),
+						       buffer.name.c_str(),
 						       MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) {
 					} else {
 						last_error = GetLastError();

@@ -91,11 +91,11 @@ COMMAND_FUNCTION(none)
 
 static void save_buffer(Editor_state& editor)
 {
-	if (editor.buffer.filename().empty()) {
+	if (editor.buffer.name.empty()) {
 		std::string filename = prompt("Write file: ");
 		if (filename.empty())
 			return;
-		editor.buffer.filename(std::move(filename));
+		editor.buffer.name = std::move(filename);
 	}
 
 	DWORD last_error = file_save(editor.buffer);
@@ -117,7 +117,7 @@ COMMAND_FUNCTION(find_file)
 	if (filename.empty())
 		return;
 
-	if (editor.buffer.modified()) {
+	if (editor.buffer.modified) {
 		User_response answer = prompt_yesno("Buffer modified. Leave anyway (y/n)? ");
 		if (answer != User_response::yes)
 			return;
@@ -214,7 +214,7 @@ COMMAND_FUNCTION(backward_line)
 
 COMMAND_FUNCTION(quit)
 {
-	if (editor.buffer.modified()) {
+	if (editor.buffer.modified) {
 		User_response answer = prompt_yesno("Buffer modified. Leave anyway (y/n)? ");
 		should_exit = answer == User_response::yes;
 	} else {
