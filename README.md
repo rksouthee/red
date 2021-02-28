@@ -36,10 +36,15 @@ where commands can be entered.
 | J   | forward line | Moves the cursor to next line. Does nothing when on the last line |
 | K   | backward line | Moves the cursor to the previous line. Moves to the beginning when on the first line |
 | L   | forward char | Moves the cursor forward a character. Wraps to the next line if at the end of a line |
+| W | forward word | Moves forward a word |
 | ^X ^S | save | Saves the current file. |
 | ^X ^C | quit | Exits the application. If unsaved changes use multiple times to force quit |
 | ^X ^F | open | Opens a new file |
 | / | search | Searches for a query in the buffer |
+| Home | | Moves to the beginning of the line |
+| ^Home | | Moves to the beginning of the file |
+| End | | Moves to the end of the line |
+| ^End | | Moves to the end of the file |
 
 ## Insert Commands
 
