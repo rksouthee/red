@@ -75,19 +75,17 @@ COMMAND_FUNCTION(none)
 static void save_buffer(Editor_state& editor)
 {
 	if (editor.buffer.filename().empty()) {
-		std::string filename = prompt("enter filename: ");
-		if (filename.empty()) {
-			set_status_line("buffer not saved");
+		std::string filename = prompt("Write file: ");
+		if (filename.empty())
 			return;
-		}
 		editor.buffer.filename(std::move(filename));
 	}
 
 	DWORD last_error = file_save(editor.buffer);
 	if (last_error == 0) {
-		set_status_line("Saved buffer");
+		set_status_line("Wrote file");
 	} else {
-		set_status_line("Error saving buffer");
+		set_status_line("Error writing file");
 	}
 }
 
@@ -98,12 +96,12 @@ COMMAND_FUNCTION(write_file)
 
 COMMAND_FUNCTION(find_file)
 {
-	std::string filename = prompt("open file: ");
+	std::string filename = prompt("Find file: ");
 	if (filename.empty())
 		return;
 
 	if (editor.buffer.modified()) {
-		User_response answer = prompt_yesno("save before leaving? (y/n)");
+		User_response answer = prompt_yesno("Buffer modified. Leave anyway (y/n)? ");
 		if (answer == User_response::cancel)
 			return;
 		if (answer == User_response::yes)
@@ -112,7 +110,7 @@ COMMAND_FUNCTION(find_file)
 
 	DWORD last_error = file_open(filename.c_str(), editor.buffer);
 	if (last_error != 0) {
-		set_status_line("Error loading file");
+		set_status_line("Error reading file");
 		return;
 	}
 
@@ -125,7 +123,7 @@ COMMAND_FUNCTION(find_file)
 
 COMMAND_FUNCTION(search_forward)
 {
-	std::string query = prompt("search: ");
+	std::string query = prompt("Search forward: ");
 	View& view = editor.view;
 	auto iter = std::search(view.cursor, view.buffer->end(), query.begin(), query.end());
 	if (iter != view.buffer->end())
@@ -202,7 +200,7 @@ COMMAND_FUNCTION(backward_line)
 COMMAND_FUNCTION(quit)
 {
 	if (editor.buffer.modified()) {
-		User_response answer = prompt_yesno("quit (y/n)");
+		User_response answer = prompt_yesno("Buffer modified. Leave anyway (y/n)? ");
 		should_exit = answer == User_response::yes;
 	} else {
 		should_exit = true;
