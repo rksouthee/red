@@ -27,7 +27,7 @@ inline unsigned control(unsigned key_code)
 void commands_initialize();
 bool evaluate(Editor_state& editor, const Key& key);
 
-COMMAND_FUNCTION(command_none);
+COMMAND_FUNCTION(none);
 
 COMMAND_FUNCTION(backward_char);
 COMMAND_FUNCTION(forward_line);
@@ -35,13 +35,13 @@ COMMAND_FUNCTION(backward_line);
 COMMAND_FUNCTION(forward_char);
 COMMAND_FUNCTION(start_insert_mode);
 COMMAND_FUNCTION(leave_insert_mode);
-COMMAND_FUNCTION(save);
+COMMAND_FUNCTION(write_file);
 COMMAND_FUNCTION(quit);
-COMMAND_FUNCTION(open);
-COMMAND_FUNCTION(search);
-COMMAND_FUNCTION(command_self_insert);
-COMMAND_FUNCTION(command_newline);
-COMMAND_FUNCTION(command_backspace);
-COMMAND_FUNCTION(command_tab);
+COMMAND_FUNCTION(find_file);
+COMMAND_FUNCTION(search_forward);
+COMMAND_FUNCTION(insert_self);
+COMMAND_FUNCTION(insert_newline);
+COMMAND_FUNCTION(backspace);
+COMMAND_FUNCTION(insert_tab);
 
 #endif

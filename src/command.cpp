@@ -12,7 +12,7 @@ static Command_function normal_mode[MAX_KEYS];
 static void normal_mode_initialize()
 {
 	for (int i = 0; i < MAX_KEYS; ++i) {
-		normal_mode[i] = command_none;
+		normal_mode[i] = none;
 	}
 
 	normal_mode['H'] = backward_char;
@@ -20,10 +20,10 @@ static void normal_mode_initialize()
 	normal_mode['K'] = backward_line;
 	normal_mode['L'] = forward_char;
 	normal_mode['I'] = start_insert_mode;
-	normal_mode[control('S')] = save;
+	normal_mode[control('S')] = write_file;
 	normal_mode[control('Q')] = quit;
-	normal_mode[control('O')] = open;
-	normal_mode[control('F')] = search;
+	normal_mode[control('O')] = find_file;
+	normal_mode[control('F')] = search_forward;
 }
 
 static Command_function insert_mode[MAX_KEYS];
@@ -31,14 +31,14 @@ static Command_function insert_mode[MAX_KEYS];
 static void insert_mode_initialize()
 {
 	for (int i = 0; i < MAX_KEYS; ++i) {
-		insert_mode[i] = command_self_insert;
+		insert_mode[i] = insert_self;
 	}
 
 	insert_mode[VK_ESCAPE] = leave_insert_mode;
-	insert_mode[VK_RETURN] = command_newline;
-	insert_mode[VK_BACK] = command_backspace;
+	insert_mode[VK_RETURN] = insert_newline;
+	insert_mode[VK_BACK] = backspace;
 	insert_mode[control(0xDB)] = leave_insert_mode;
-	insert_mode[VK_TAB] = command_tab;
+	insert_mode[VK_TAB] = insert_tab;
 }
 
 static Command_function* commands = normal_mode;
@@ -61,14 +61,14 @@ bool evaluate(Editor_state& editor, const Key& key)
 	Command_function cmd = commands[index];
 	bool should_exit = false;
 	assert(cmd);
-	if (cmd != command_none) {
+	if (cmd != none) {
 		cmd(editor, key, should_exit);
 		display_refresh(editor.view);
 	}
 	return should_exit;
 }
 
-COMMAND_FUNCTION(command_none)
+COMMAND_FUNCTION(none)
 {
 }
 
@@ -91,12 +91,12 @@ static void save_buffer(Editor_state& editor)
 	}
 }
 
-COMMAND_FUNCTION(save)
+COMMAND_FUNCTION(write_file)
 {
 	save_buffer(editor);
 }
 
-COMMAND_FUNCTION(open)
+COMMAND_FUNCTION(find_file)
 {
 	std::string filename = prompt("open file: ");
 	if (filename.empty())
@@ -123,7 +123,7 @@ COMMAND_FUNCTION(open)
 	editor.view.column_desired = 0;
 }
 
-COMMAND_FUNCTION(search)
+COMMAND_FUNCTION(search_forward)
 {
 	std::string query = prompt("search: ");
 	View& view = editor.view;
@@ -209,7 +209,7 @@ COMMAND_FUNCTION(quit)
 	}
 }
 
-COMMAND_FUNCTION(command_self_insert)
+COMMAND_FUNCTION(insert_self)
 {
 	char character = key.ascii;
 	if (is_print(character)) {
@@ -218,13 +218,13 @@ COMMAND_FUNCTION(command_self_insert)
 	}
 }
 
-COMMAND_FUNCTION(command_newline)
+COMMAND_FUNCTION(insert_newline)
 {
 	editor.buffer.insert(editor.view.cursor, '\n');
 	++editor.view.cursor;
 }
 
-COMMAND_FUNCTION(command_backspace)
+COMMAND_FUNCTION(backspace)
 {
 	View& view = editor.view;
 	if (view.cursor != view.buffer->begin()) {
@@ -233,7 +233,7 @@ COMMAND_FUNCTION(command_backspace)
 	}
 }
 
-COMMAND_FUNCTION(command_tab)
+COMMAND_FUNCTION(insert_tab)
 {
 	editor.buffer.insert(editor.view.cursor, '\t');
 	++editor.view.cursor;
