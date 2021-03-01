@@ -45,8 +45,8 @@ Key_input wait_for_key()
 
 		Key_input key_input;
 		key_input.key = key_event.wVirtualKeyCode;
-		key_input.key |= ((key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0) << 8;
-		key_input.key |= ((key_event.dwControlKeyState & SHIFT_PRESSED) != 0) << 9;
+		key_input.key |= ((key_event.dwControlKeyState & SHIFT_PRESSED) != 0) << 8;
+		key_input.key |= ((key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0) << 9;
 		key_input.key |= ((key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0) << 10;
 		key_input.ascii = key_event.uChar.AsciiChar;
 		return key_input;

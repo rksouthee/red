@@ -19,11 +19,11 @@ static Bind normal_binds[] = {
 	{ 'L', forward_char },
 	{ 'W', forward_word },
 	{ 'I', insert_before_cursor },
-	{ 'I' | (1 << 9), insert_before_line },
+	{ 'I' | (1 << 8), insert_before_line },
 	{ 'A', insert_after_cursor },
-	{ 'A' | (1 << 9), insert_after_line },
+	{ 'A' | (1 << 8), insert_after_line },
 	{ 'O', open_line_after },
-	{ 'O' | (1 << 9), open_line_before },
+	{ 'O' | (1 << 8), open_line_before },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
 	{ control(VK_HOME), goto_beginning_of_file },
@@ -31,7 +31,7 @@ static Bind normal_binds[] = {
 	{ control(VK_END), goto_end_of_file },
 	{ control('X'), ctrlx_command },
 	{ 0x30, goto_beginning_of_line },
-	{ 0x34 | (1 << 9), goto_end_of_line },
+	{ 0x34 | (1 << 8), goto_end_of_line },
 };
 
 static Bind ctrlx_binds[] = {

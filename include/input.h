@@ -3,9 +3,8 @@
 
 #include <Windows.h> // TODO: used for DWORD below, remove this
 
-
 struct Key_input {
-	unsigned key;
+	SHORT key;
 	char ascii;
 };
 

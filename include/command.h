@@ -8,16 +8,14 @@
 typedef COMMAND_FUNCTION((*Command_function));
 
 /*
- * 11 bits for key state
- * A9876543210
- * sackkkkkkkk
- * s = shift
- * a = alt
- * c = ctrl
- * k = key code
+ * Using the Microsoft convention for a key code. The low-order byte contains the virtual-key code and
+ * the high-order byte contains the shift state, which can be a combination of the following
+ * 1 Either SHIFT key is pressed
+ * 2 Either CTRL key is pressed
+ * 4 Either ALT key is pressed
  */
 #define MAX_KEYS (1 << (8 + 3))
-#define CONTROL_SHIFT (1 << 8)
+#define CONTROL_SHIFT (1 << 9)
 
 inline unsigned control(unsigned key_code)
 {

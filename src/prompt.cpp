@@ -69,7 +69,7 @@ std::string prompt(std::string_view message)
 				--position;
 				result.erase(position, 1);
 			}
-		} else if (input.key == VK_ESCAPE || (input.key == (0xDB | (1 << 8)))) {
+		} else if (input.key == VK_ESCAPE || (input.key == (0xDB | (1 << 9)))) {
 			result.clear();
 			break;
 		}
