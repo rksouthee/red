@@ -22,7 +22,7 @@ User_response prompt_yesno(std::string_view message)
 			break;
 		}
 
-		if (response.key.code == VK_ESCAPE) {
+		if (response.key == VK_ESCAPE) {
 			result = User_response::cancel;
 			break;
 		}
@@ -56,20 +56,20 @@ std::string prompt(std::string_view message)
 		if (is_print(input.ascii)) {
 			result.insert(position, 1, input.ascii);
 			++position;
-		} else if (input.key.code == VK_RETURN) {
+		} else if (input.key == VK_RETURN) {
 			break;
-		} else if (input.key.code == VK_LEFT) {
+		} else if (input.key == VK_LEFT) {
 			if (position > 0)
 				--position;
-		} else if (input.key.code == VK_RIGHT) {
+		} else if (input.key == VK_RIGHT) {
 			if (position < result.size())
 				++position;
-		} else if (input.key.code == VK_BACK) {
+		} else if (input.key == VK_BACK) {
 			if (position > 0) {
 				--position;
 				result.erase(position, 1);
 			}
-		} else if (input.key.code == VK_ESCAPE || (input.key.code == 0xDB && input.key.ctrl)) {
+		} else if (input.key == VK_ESCAPE || (input.key == (0xDB | (1 << 8)))) {
 			result.clear();
 			break;
 		}

@@ -10,14 +10,9 @@
 static Command_function normal_mode[MAX_KEYS];
 static Command_function ctrlx_mode[MAX_KEYS];
 
-static unsigned key_to_index(const Key& key)
+static unsigned key_to_index(unsigned index)
 {
-	assert(key.code >= 0 && key.code < 256);
-	unsigned index = key.code;
-	index |= key.ctrl << 8;
-	index |= key.alt << 9;
-	index |= key.shift << 10;
-	assert(index >= 0 && index < MAX_KEYS);
+	assert(index < MAX_KEYS);
 	return index;
 }
 

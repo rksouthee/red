@@ -3,23 +3,9 @@
 
 #include <Windows.h> // TODO: used for DWORD below, remove this
 
-struct Key {
-	int code;
-	bool ctrl;
-	bool shift;
-	bool alt;
-};
-
-bool operator==(const Key& x, const Key& y);
-bool operator!=(const Key& x, const Key& y);
-
-bool operator <(const Key& x, const Key& y);
-bool operator >(const Key& x, const Key& y);
-bool operator<=(const Key& x, const Key& y);
-bool operator>=(const Key& x, const Key& y);
 
 struct Key_input {
-	Key key;
+	unsigned key;
 	char ascii;
 };
 
