@@ -8,36 +8,36 @@
 #include "screen.h"
 
 struct Bind {
-	unsigned key;
+	SHORT key;
 	Command_function cmd;
 };
 
 static Bind normal_binds[] = {
-	{ 'H', backward_char },
-	{ 'J', forward_line },
-	{ 'K', backward_line },
-	{ 'L', forward_char },
-	{ 'W', forward_word },
-	{ 'I', insert_before_cursor },
-	{ 'I' | (1 << 8), insert_before_line },
-	{ 'A', insert_after_cursor },
-	{ 'A' | (1 << 8), insert_after_line },
-	{ 'O', open_line_after },
-	{ 'O' | (1 << 8), open_line_before },
+	{ VkKeyScanA('h'), backward_char },
+	{ VkKeyScanA('j'), forward_line },
+	{ VkKeyScanA('k'), backward_line },
+	{ VkKeyScanA('l'), forward_char },
+	{ VkKeyScanA('w'), forward_word },
+	{ VkKeyScanA('i'), insert_before_cursor },
+	{ VkKeyScanA('I'), insert_before_line },
+	{ VkKeyScanA('a'), insert_after_cursor },
+	{ VkKeyScanA('A'), insert_after_line },
+	{ VkKeyScanA('o'), open_line_after },
+	{ VkKeyScanA('O'), open_line_before },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
-	{ control(VK_HOME), goto_beginning_of_file },
+	{ CONTROL | VK_HOME, goto_beginning_of_file },
 	{ VK_END, goto_end_of_line },
-	{ control(VK_END), goto_end_of_file },
-	{ control('X'), ctrlx_command },
-	{ 0x30, goto_beginning_of_line },
-	{ 0x34 | (1 << 8), goto_end_of_line },
+	{ CONTROL | VK_END, goto_end_of_file },
+	{ CONTROL | VkKeyScanA('x'), ctrlx_command },
+	{ VkKeyScanA('0'), goto_beginning_of_line },
+	{ VkKeyScanA('$'), goto_end_of_line },
 };
 
 static Bind ctrlx_binds[] = {
-	{ control('S'), write_file },
-	{ control('C'), quit },
-	{ control('F'), find_file },
+	{ CONTROL | VkKeyScanA('s'), write_file },
+	{ CONTROL | VkKeyScanA('c'), quit },
+	{ CONTROL | VkKeyScanA('f'), find_file },
 };
 
 COMMAND_FUNCTION(ctrlx_command)
@@ -52,7 +52,7 @@ COMMAND_FUNCTION(ctrlx_command)
 
 static Bind insert_binds[] = {
 	{ VK_ESCAPE, leave_insert_mode },
-	{ control(0xDB), leave_insert_mode },
+	{ CONTROL | VkKeyScanA('['), leave_insert_mode },
 	{ VK_RETURN, insert_newline },
 	{ VK_TAB, insert_tab },
 	{ VK_BACK, backspace },

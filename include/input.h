@@ -3,6 +3,10 @@
 
 #include <Windows.h> // TODO: used for DWORD below, remove this
 
+#define SHIFT (1 << 8)
+#define CONTROL (1 << 9)
+#define ALT (1 << 10)
+
 struct Key_input {
 	SHORT key;
 	char ascii;

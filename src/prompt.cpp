@@ -22,7 +22,7 @@ User_response prompt_yesno(std::string_view message)
 			break;
 		}
 
-		if (response.key == VK_ESCAPE) {
+		if (response.ascii == 27) {
 			result = User_response::cancel;
 			break;
 		}
@@ -69,7 +69,7 @@ std::string prompt(std::string_view message)
 				--position;
 				result.erase(position, 1);
 			}
-		} else if (input.key == VK_ESCAPE || (input.key == (0xDB | (1 << 9)))) {
+		} else if (input.ascii == 27) {
 			result.clear();
 			break;
 		}
