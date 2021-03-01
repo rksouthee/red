@@ -8,11 +8,23 @@ struct Key {
 	bool ctrl;
 	bool shift;
 	bool alt;
+};
+
+bool operator==(const Key& x, const Key& y);
+bool operator!=(const Key& x, const Key& y);
+
+bool operator <(const Key& x, const Key& y);
+bool operator >(const Key& x, const Key& y);
+bool operator<=(const Key& x, const Key& y);
+bool operator>=(const Key& x, const Key& y);
+
+struct Key_input {
+	Key key;
 	char ascii;
 };
 
 DWORD input_initialize();
 
-Key wait_for_key();
+Key_input wait_for_key();
 
 #endif

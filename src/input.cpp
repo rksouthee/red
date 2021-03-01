@@ -32,7 +32,53 @@ DWORD input_initialize()
 	return last_error;
 }
 
-Key wait_for_key()
+bool operator==(const Key& x, const Key& y)
+{
+	return x.code == y.code && x.ctrl == y.ctrl && x.shift == y.shift && x.alt == y.alt;
+}
+
+bool operator!=(const Key& x, const Key& y)
+{
+	return !(x == y);
+}
+
+bool operator <(const Key& x, const Key& y)
+{
+	if (x.code < y.code)
+		return true;
+	if (y.code < x.code)
+		return false;
+	if (x.ctrl < y.ctrl)
+		return true;
+	if (y.ctrl < x.ctrl)
+		return false;
+	if (x.shift < y.shift)
+		return true;
+	if (y.shift < x.shift)
+		return false;
+	if (x.alt < y.alt)
+		return true;
+	if (y.alt < x.alt)
+		return false;
+	return false;
+}
+
+bool operator >(const Key& x, const Key& y)
+{
+	return y < x;
+}
+
+bool operator<=(const Key& x, const Key& y)
+{
+	return !(y < x);
+}
+
+bool operator>=(const Key& x, const Key& y)
+{
+	return !(x < y);
+}
+
+Key_input wait_for_key()
 {
 	INPUT_RECORD input;
 	DWORD read;
@@ -43,13 +89,13 @@ Key wait_for_key()
 		if (!key_event.bKeyDown)
 			continue;
 
-		Key key;
-		key.code = key_event.wVirtualKeyCode;
-		key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
-		key.shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
-		key.alt = (key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
-		key.ascii = key_event.uChar.AsciiChar;
-		return key;
+		Key_input key_input;
+		key_input.key.code = key_event.wVirtualKeyCode;
+		key_input.key.ctrl = (key_event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+		key_input.key.shift = (key_event.dwControlKeyState & SHIFT_PRESSED) != 0;
+		key_input.key.alt = (key_event.dwControlKeyState & (LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) != 0;
+		key_input.ascii = key_event.uChar.AsciiChar;
+		return key_input;
 	}
 	// TODO: handle ReadConsoleInput failure
 	return {};

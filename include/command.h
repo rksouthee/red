@@ -4,7 +4,7 @@
 #include "editor.h"
 #include "input.h"
 
-#define COMMAND_FUNCTION(name) void name(Editor_state& editor, const Key& key, bool& should_exit)
+#define COMMAND_FUNCTION(name) void name(Editor_state& editor, const Key_input& input, bool& should_exit)
 typedef COMMAND_FUNCTION((*Command_function));
 
 /*
@@ -25,7 +25,7 @@ inline unsigned control(unsigned key_code)
 }
 
 void commands_initialize();
-bool evaluate(Editor_state& editor, const Key& key);
+bool evaluate(Editor_state& editor, const Key_input& input);
 
 COMMAND_FUNCTION(none);
 

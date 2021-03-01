@@ -10,7 +10,7 @@ User_response prompt_yesno(std::string_view message)
 	User_response result;
 	while (true) {
 		set_status_line(message);
-		Key response = wait_for_key();
+		Key_input response = wait_for_key();
 
 		if (response.ascii == 'y' || response.ascii == 'Y') {
 			result = User_response::yes;
@@ -22,7 +22,7 @@ User_response prompt_yesno(std::string_view message)
 			break;
 		}
 
-		if (response.code == VK_ESCAPE) {
+		if (response.key.code == VK_ESCAPE) {
 			result = User_response::cancel;
 			break;
 		}
@@ -52,24 +52,24 @@ std::string prompt(std::string_view message)
 	while (true) {
 		assert(position <= result.size());
 		render_prompt(prompt_start, result, position);
-		Key key = wait_for_key();
-		if (is_print(key.ascii)) {
-			result.insert(position, 1, key.ascii);
+		Key_input input = wait_for_key();
+		if (is_print(input.ascii)) {
+			result.insert(position, 1, input.ascii);
 			++position;
-		} else if (key.code == VK_RETURN) {
+		} else if (input.key.code == VK_RETURN) {
 			break;
-		} else if (key.code == VK_LEFT) {
+		} else if (input.key.code == VK_LEFT) {
 			if (position > 0)
 				--position;
-		} else if (key.code == VK_RIGHT) {
+		} else if (input.key.code == VK_RIGHT) {
 			if (position < result.size())
 				++position;
-		} else if (key.code == VK_BACK) {
+		} else if (input.key.code == VK_BACK) {
 			if (position > 0) {
 				--position;
 				result.erase(position, 1);
 			}
-		} else if (key.code == VK_ESCAPE || (key.code == 0xDB && key.ctrl)) {
+		} else if (input.key.code == VK_ESCAPE || (input.key.code == 0xDB && input.key.ctrl)) {
 			result.clear();
 			break;
 		}

@@ -63,8 +63,8 @@ int main(int argc, char **argv)
 			if (last_error == 0) {
 				display_refresh(editor.view);
 				while (true) {
-					Key key = wait_for_key();
-					if (evaluate(editor, key))
+					Key_input input = wait_for_key();
+					if (evaluate(editor, input))
 						break;
 				}
 			} else {

@@ -23,10 +23,10 @@ static unsigned key_to_index(const Key& key)
 
 COMMAND_FUNCTION(ctrlx_command)
 {
-	Key new_key = wait_for_key();
-	unsigned index = key_to_index(new_key);
+	Key_input new_input = wait_for_key();
+	unsigned index = key_to_index(new_input.key);
 	Command_function cmd = ctrlx_mode[index];
-	cmd(editor, new_key, should_exit);
+	cmd(editor, new_input, should_exit);
 }
 
 static void normal_mode_initialize()
@@ -77,14 +77,14 @@ void commands_initialize()
 	insert_mode_initialize();
 }
 
-bool evaluate(Editor_state& editor, const Key& key)
+bool evaluate(Editor_state& editor, const Key_input& input)
 {
-	unsigned index = key_to_index(key);
+	unsigned index = key_to_index(input.key);
 	Command_function cmd = commands[index];
 	bool should_exit = false;
 	assert(cmd);
 	if (cmd != none) {
-		cmd(editor, key, should_exit);
+		cmd(editor, input, should_exit);
 		display_refresh(editor.view);
 	}
 	return should_exit;
@@ -270,7 +270,7 @@ COMMAND_FUNCTION(quit)
 
 COMMAND_FUNCTION(insert_self)
 {
-	char character = key.ascii;
+	char character = input.ascii;
 	if (is_print(character)) {
 		editor.buffer.insert(editor.view.cursor, character);
 		++editor.view.cursor;
