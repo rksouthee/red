@@ -33,6 +33,7 @@ static Bind normal_binds[] = {
 	{ CONTROL | VkKeyScanA('x'), ctrlx_command },
 	{ VkKeyScanA('0'), goto_beginning_of_line },
 	{ VkKeyScanA('$'), goto_end_of_line },
+	{ VkKeyScanA('S'), replace_line },
 };
 
 static Bind ctrlx_binds[] = {
@@ -56,7 +57,9 @@ static Bind insert_binds[] = {
 	{ CONTROL | VkKeyScanA('['), leave_insert_mode },
 	{ VK_RETURN, insert_newline },
 	{ VK_TAB, insert_tab },
+	{ CONTROL | VkKeyScanA('i'), insert_tab },
 	{ VK_BACK, backspace },
+	{ CONTROL | VkKeyScanA('t'), indent_line },
 };
 
 bool evaluate(Editor_state& editor, const Key_input& input)
@@ -362,4 +365,23 @@ COMMAND_FUNCTION(delete_line)
 	view.buffer->erase(line_begin, line_end);
 	view.cursor = line_begin;
 	view.column_desired = 0;
+}
+
+COMMAND_FUNCTION(replace_line)
+{
+	View& view = editor.view;
+	Buffer::iterator line_begin = find_backward(view.buffer->begin(), view.cursor, '\n');
+	Buffer::iterator line_end = std::find(view.cursor, view.buffer->end(), '\n');
+	view.buffer->erase(line_begin, line_end);
+	view.cursor = line_begin;
+	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(indent_line)
+{
+	View& view = editor.view;
+	Buffer::iterator line_begin = find_backward(view.buffer->begin(), view.cursor, '\n');
+	view.buffer->insert(line_begin, '\t');
+	++view.cursor;
+	view.column_desired = -1;
 }

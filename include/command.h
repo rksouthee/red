@@ -53,5 +53,7 @@ COMMAND_FUNCTION(ctrlx_command);
 COMMAND_FUNCTION(open_line_after);
 COMMAND_FUNCTION(open_line_before);
 COMMAND_FUNCTION(delete_line);
+COMMAND_FUNCTION(replace_line);
+COMMAND_FUNCTION(indent_line);
 
 #endif
