@@ -18,7 +18,12 @@ static Bind normal_binds[] = {
 	{ 'K', backward_line },
 	{ 'L', forward_char },
 	{ 'W', forward_word },
-	{ 'I', start_insert_mode },
+	{ 'I', insert_before_cursor },
+	{ 'I' | (1 << 9), insert_before_line },
+	{ 'A', insert_after_cursor },
+	{ 'A' | (1 << 9), insert_after_line },
+	{ 'O', open_line_after },
+	{ 'O' | (1 << 9), open_line_before },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
 	{ control(VK_HOME), goto_beginning_of_file },
@@ -272,10 +277,11 @@ COMMAND_FUNCTION(insert_tab)
 	++editor.view.cursor;
 }
 
-COMMAND_FUNCTION(start_insert_mode)
+static void insert_mode(Editor_state& editor, bool& should_exit)
 {
 	set_status_line("--INSERT--");
 	screen_cursor_style(Cursor_style::underline);
+	display_refresh(editor.view);
 
 	while (true) {
 		Key_input input = wait_for_key();
@@ -294,9 +300,53 @@ COMMAND_FUNCTION(start_insert_mode)
 	}
 }
 
+COMMAND_FUNCTION(insert_before_cursor)
+{
+	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(insert_before_line)
+{
+	View& view = editor.view;
+	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
+	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(insert_after_cursor)
+{
+	View& view = editor.view;
+	if (view.cursor != view.buffer->end())
+		++view.cursor;
+	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(insert_after_line)
+{
+	View& view = editor.view;
+	view.cursor = std::find(view.cursor, view.buffer->end(), '\n');
+	insert_mode(editor, should_exit);
+}
+
 COMMAND_FUNCTION(leave_insert_mode)
 {
 	set_status_line("");
 	screen_cursor_style(Cursor_style::block);
 	editor.view.column_desired = -1;
+}
+
+COMMAND_FUNCTION(open_line_after)
+{
+	View& view = editor.view;
+	view.cursor = std::find(view.cursor, view.buffer->end(), '\n');
+	editor.buffer.insert(view.cursor, '\n');
+	++view.cursor;
+	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(open_line_before)
+{
+	View& view = editor.view;
+	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
+	editor.buffer.insert(view.cursor, '\n');
+	insert_mode(editor, should_exit);
 }

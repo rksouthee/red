@@ -38,7 +38,10 @@ COMMAND_FUNCTION(goto_end_of_line);
 COMMAND_FUNCTION(goto_end_of_file);
 COMMAND_FUNCTION(forward_char);
 COMMAND_FUNCTION(forward_word);
-COMMAND_FUNCTION(start_insert_mode);
+COMMAND_FUNCTION(insert_before_cursor);
+COMMAND_FUNCTION(insert_before_line);
+COMMAND_FUNCTION(insert_after_cursor);
+COMMAND_FUNCTION(insert_after_line);
 COMMAND_FUNCTION(leave_insert_mode);
 COMMAND_FUNCTION(write_file);
 COMMAND_FUNCTION(quit);
@@ -49,5 +52,7 @@ COMMAND_FUNCTION(insert_newline);
 COMMAND_FUNCTION(backspace);
 COMMAND_FUNCTION(insert_tab);
 COMMAND_FUNCTION(ctrlx_command);
+COMMAND_FUNCTION(open_line_after);
+COMMAND_FUNCTION(open_line_before);
 
 #endif
