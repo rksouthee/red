@@ -48,5 +48,6 @@ COMMAND_FUNCTION(insert_self);
 COMMAND_FUNCTION(insert_newline);
 COMMAND_FUNCTION(backspace);
 COMMAND_FUNCTION(insert_tab);
+COMMAND_FUNCTION(ctrlx_command);
 
 #endif

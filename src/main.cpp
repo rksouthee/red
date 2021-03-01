@@ -55,7 +55,6 @@ int main(int argc, char **argv)
 	if (last_error == 0) {
 		editor_initialize(editor);
 		screen_cursor_style(Cursor_style::block);
-		commands_initialize();
 		last_error = input_initialize();
 		if (last_error == 0) {
 			if (argc == 2)

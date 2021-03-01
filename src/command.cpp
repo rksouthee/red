@@ -7,79 +7,58 @@
 #include "utility.h"
 #include "screen.h"
 
-static Command_function normal_mode[MAX_KEYS];
-static Command_function ctrlx_mode[MAX_KEYS];
+struct Bind {
+	unsigned key;
+	Command_function cmd;
+};
 
-static unsigned key_to_index(unsigned index)
-{
-	assert(index < MAX_KEYS);
-	return index;
-}
+static Bind normal_binds[] = {
+	{ 'H', backward_char },
+	{ 'J', forward_line },
+	{ 'K', backward_line },
+	{ 'L', forward_char },
+	{ 'W', forward_word },
+	{ 'I', start_insert_mode },
+	{ VK_OEM_2, search_forward },
+	{ VK_HOME, goto_beginning_of_line },
+	{ control(VK_HOME), goto_beginning_of_file },
+	{ VK_END, goto_end_of_line },
+	{ control(VK_END), goto_end_of_file },
+	{ control('X'), ctrlx_command },
+};
+
+static Bind ctrlx_binds[] = {
+	{ control('S'), write_file },
+	{ control('C'), quit },
+	{ control('F'), find_file },
+};
 
 COMMAND_FUNCTION(ctrlx_command)
 {
 	Key_input new_input = wait_for_key();
-	unsigned index = key_to_index(new_input.key);
-	Command_function cmd = ctrlx_mode[index];
-	cmd(editor, new_input, should_exit);
+	auto iter = std::find_if(std::begin(ctrlx_binds), std::end(ctrlx_binds), [&new_input] (const Bind& bind) -> bool {
+		return bind.key == new_input.key;
+	});
+	if (iter != std::end(ctrlx_binds))
+		iter->cmd(editor, new_input, should_exit);
 }
 
-static void normal_mode_initialize()
-{
-	for (int i = 0; i < MAX_KEYS; ++i) {
-		normal_mode[i] = none;
-		ctrlx_mode[i] = none;
-	}
-
-	normal_mode['H'] = backward_char;
-	normal_mode['J'] = forward_line;
-	normal_mode['K'] = backward_line;
-	normal_mode[VK_HOME] = goto_beginning_of_line;
-	normal_mode[control(VK_HOME)] = goto_beginning_of_file;
-	normal_mode[VK_END] = goto_end_of_line;
-	normal_mode[control(VK_END)] = goto_end_of_file;
-	normal_mode['L'] = forward_char;
-	normal_mode['W'] = forward_word;
-	normal_mode['I'] = start_insert_mode;
-	normal_mode[VK_OEM_2] = search_forward;
-
-	normal_mode[control('X')] = ctrlx_command;
-	ctrlx_mode[control('S')] = write_file;
-	ctrlx_mode[control('C')] = quit;
-	ctrlx_mode[control('F')] = find_file;
-}
-
-static Command_function insert_mode[MAX_KEYS];
-
-static void insert_mode_initialize()
-{
-	for (int i = 0; i < MAX_KEYS; ++i) {
-		insert_mode[i] = insert_self;
-	}
-
-	insert_mode[VK_ESCAPE] = leave_insert_mode;
-	insert_mode[VK_RETURN] = insert_newline;
-	insert_mode[VK_BACK] = backspace;
-	insert_mode[control(0xDB)] = leave_insert_mode;
-	insert_mode[VK_TAB] = insert_tab;
-}
-
-static Command_function* commands = normal_mode;
-
-void commands_initialize()
-{
-	normal_mode_initialize();
-	insert_mode_initialize();
-}
+static Bind insert_binds[] = {
+	{ VK_ESCAPE, leave_insert_mode },
+	{ control(0xDB), leave_insert_mode },
+	{ VK_RETURN, insert_newline },
+	{ VK_TAB, insert_tab },
+	{ VK_BACK, backspace },
+};
 
 bool evaluate(Editor_state& editor, const Key_input& input)
 {
-	unsigned index = key_to_index(input.key);
-	Command_function cmd = commands[index];
+	auto iter = std::find_if(std::begin(normal_binds), std::end(normal_binds), [&input] (const Bind& bind) -> bool {
+		return bind.key == input.key;
+	});
 	bool should_exit = false;
-	assert(cmd);
-	if (cmd != none) {
-		cmd(editor, input, should_exit);
+	if (iter != std::end(normal_binds)) {
+		iter->cmd(editor, input, should_exit);
 		display_refresh(editor.view);
 	}
 	return should_exit;
@@ -295,14 +274,28 @@ COMMAND_FUNCTION(insert_tab)
 
 COMMAND_FUNCTION(start_insert_mode)
 {
-	commands = insert_mode;
 	set_status_line("--INSERT--");
 	screen_cursor_style(Cursor_style::underline);
+
+	while (true) {
+		Key_input input = wait_for_key();
+		auto iter = std::find_if(std::begin(insert_binds), std::end(insert_binds), [&input] (const Bind& bind) -> bool {
+			return bind.key == input.key;
+		});
+		if (iter == std::end(insert_binds)) {
+			insert_self(editor, input, should_exit);
+		} else if (iter->cmd == leave_insert_mode) {
+			iter->cmd(editor, input, should_exit);
+			break;
+		} else {
+			iter->cmd(editor, input, should_exit);
+		}
+		display_refresh(editor.view);
+	}
 }
 
 COMMAND_FUNCTION(leave_insert_mode)
 {
-	commands = normal_mode;
 	set_status_line("");
 	screen_cursor_style(Cursor_style::block);
 	editor.view.column_desired = -1;
