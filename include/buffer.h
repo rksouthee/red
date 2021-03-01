@@ -21,6 +21,7 @@ struct Buffer {
 
 	void insert(iterator i, char c);
 	void erase(iterator i);
+	void erase(iterator f, iterator l);
 };
 
 #endif

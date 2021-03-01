@@ -40,3 +40,9 @@ void Buffer::erase(iterator i)
 	modified = true;
 	contents.erase(i, 1);
 }
+
+void Buffer::erase(iterator f, iterator l)
+{
+	modified = true;
+	contents.erase(f, l);
+}

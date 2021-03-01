@@ -338,3 +338,9 @@ void Gap_buffer::erase(iterator i, size_type n)
 	gap_move(i);
 	gap_end += n;
 }
+
+void Gap_buffer::erase(iterator f, iterator l)
+{
+	gap_move(f);
+	gap_end += (l.index - f.index);
+}

@@ -52,5 +52,6 @@ COMMAND_FUNCTION(insert_tab);
 COMMAND_FUNCTION(ctrlx_command);
 COMMAND_FUNCTION(open_line_after);
 COMMAND_FUNCTION(open_line_before);
+COMMAND_FUNCTION(delete_line);
 
 #endif

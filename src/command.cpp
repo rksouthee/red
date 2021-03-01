@@ -24,6 +24,7 @@ static Bind normal_binds[] = {
 	{ VkKeyScanA('A'), insert_after_line },
 	{ VkKeyScanA('o'), open_line_after },
 	{ VkKeyScanA('O'), open_line_before },
+	{ VkKeyScanA('D'), delete_line },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
 	{ CONTROL | VK_HOME, goto_beginning_of_file },
@@ -351,4 +352,14 @@ COMMAND_FUNCTION(open_line_before)
 	view.cursor = find_backward(view.buffer->begin(), view.cursor, '\n');
 	editor.buffer.insert(view.cursor, '\n');
 	insert_mode(editor, should_exit);
+}
+
+COMMAND_FUNCTION(delete_line)
+{
+	View& view = editor.view;
+	Buffer::iterator line_begin = find_backward(view.buffer->begin(), view.cursor, '\n');
+	Buffer::iterator line_end = std::find(view.cursor, view.buffer->end(), '\n');
+	view.buffer->erase(line_begin, line_end);
+	view.cursor = line_begin;
+	view.column_desired = 0;
 }

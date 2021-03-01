@@ -84,6 +84,7 @@ public:
 
 	void insert(iterator i, size_type n, char c);
 	void erase(iterator i, size_type n);
+	void erase(iterator f, iterator l);
 
 private:
 	void gap_move(iterator i);
