@@ -30,6 +30,8 @@ static Bind normal_binds[] = {
 	{ VK_END, goto_end_of_line },
 	{ control(VK_END), goto_end_of_file },
 	{ control('X'), ctrlx_command },
+	{ 0x30, goto_beginning_of_line },
+	{ 0x34 | (1 << 9), goto_end_of_line },
 };
 
 static Bind ctrlx_binds[] = {
