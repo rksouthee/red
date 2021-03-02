@@ -1,8 +1,21 @@
 #include "gap_buffer.h"
-
+#include <cassert>
 #include <algorithm>
 #include <new>
 #include <tuple>
+
+/*
+ * move_gap
+ */
+template <typename I>
+// requires BidirectionalIterator(I)
+std::pair<I, I> move_gap(I iter, I gap_begin, I gap_end)
+{
+	assert(iter < gap_begin || iter >= gap_end);
+	if (iter < gap_begin)
+		return std::make_pair(iter, std::move_backward(iter, gap_begin, gap_end));
+	return std::make_pair(std::move(gap_end, iter, gap_begin), iter);
+}
 
 Gap_buffer::~Gap_buffer()
 {
@@ -195,15 +208,16 @@ const char* Gap_buffer::end1() const
 	return data_end;
 }
 
-Gap_buffer::iterator::iterator(Gap_buffer& buffer, Gap_buffer::size_type index) :
-	buffer(&buffer),
-	index(index)
+Gap_buffer::iterator::iterator(char* ptr, char* gap_begin, char* gap_end) :
+	ptr(ptr),
+	gap_begin(gap_begin),
+	gap_end(gap_end)
 {
 }
 
 bool operator==(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
 {
-	return x.index == y.index;
+	return x.ptr == y.ptr;
 }
 
 bool operator!=(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
@@ -213,7 +227,7 @@ bool operator!=(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
 
 bool operator <(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
 {
-	return x.index < y.index;
+	return x.ptr < y.ptr;
 }
 
 bool operator >(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
@@ -233,7 +247,7 @@ bool operator>=(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
 
 Gap_buffer::iterator::reference Gap_buffer::iterator::operator*() const
 {
-	return (*buffer)[index];
+	return *ptr;
 }
 
 Gap_buffer::iterator::pointer Gap_buffer::iterator::operator->() const
@@ -243,7 +257,9 @@ Gap_buffer::iterator::pointer Gap_buffer::iterator::operator->() const
 
 Gap_buffer::iterator& Gap_buffer::iterator::operator++()
 {
-	++index;
+	++ptr;
+	if (ptr == gap_begin)
+		ptr = gap_end;
 	return *this;
 }
 
@@ -254,9 +270,34 @@ Gap_buffer::iterator Gap_buffer::iterator::operator++(int)
 	return tmp;
 }
 
+Gap_buffer::iterator& Gap_buffer::iterator::operator+=(difference_type n)
+{
+	if (ptr < gap_begin) {
+		if (n >= gap_begin - ptr)
+			n += (gap_end - gap_begin);
+	} else {
+		if (n < gap_end - ptr)
+			n -= (gap_end - gap_begin);
+	}
+	ptr += n;
+	return *this;
+}
+
+Gap_buffer::iterator operator+(Gap_buffer::iterator x, Gap_buffer::iterator::difference_type n)
+{
+	return x += n;
+}
+
+Gap_buffer::iterator::reference Gap_buffer::iterator::operator[](difference_type n) const
+{
+	return *(*this + n);
+}
+
 Gap_buffer::iterator& Gap_buffer::iterator::operator--()
 {
-	--index;
+	if (ptr == gap_end)
+		ptr = gap_begin;
+	--ptr;
 	return *this;
 }
 
@@ -267,14 +308,38 @@ Gap_buffer::iterator Gap_buffer::iterator::operator--(int)
 	return tmp;
 }
 
+Gap_buffer::iterator& Gap_buffer::iterator::operator-=(difference_type n)
+{
+	// TODO: Is it better to implement this here or just call operator+
+	return *this += (-n);
+}
+
+Gap_buffer::iterator operator-(Gap_buffer::iterator x, Gap_buffer::iterator::difference_type n)
+{
+	return x -= n;
+}
+
+Gap_buffer::iterator::difference_type operator-(const Gap_buffer::iterator& x, const Gap_buffer::iterator& y)
+{
+	assert(x.gap_begin == y.gap_begin && x.gap_end == y.gap_end);
+	Gap_buffer::iterator::difference_type n = x.ptr - y.ptr;
+	if (x.ptr < x.gap_begin && y.ptr >= y.gap_end)
+		n += (x.gap_end - x.gap_begin);
+	else if (x.ptr >= x.gap_end && y.ptr < y.gap_begin)
+		n -= (x.gap_end - x.gap_begin);
+	return n;
+}
+
 Gap_buffer::iterator Gap_buffer::begin()
 {
-	return iterator(*this, 0);
+	if (gap_begin == data_begin)
+		return iterator(gap_end, gap_begin, gap_end);
+	return iterator(data_begin, gap_begin, gap_end);
 }
 
 Gap_buffer::iterator Gap_buffer::end()
 {
-	return iterator(*this, size());
+	return iterator(data_end, gap_begin, gap_end);
 }
 
 void Gap_buffer::reserve(size_type n)
@@ -295,52 +360,22 @@ void Gap_buffer::reserve(size_type n)
 	gap_end = new_gap_end;
 }
 
-template <typename I0, typename I1, typename N>
-std::pair<I0, I1> move_backward_n(I0 l0, N n, I1 l1)
-{
-	while (n) {
-		*--l1 = *--l0;
-		--n;
-	}
-	return std::make_pair(l0, l1);
-}
-
-template <typename I0, typename I1, typename N>
-std::pair<I0, I1> move_n(I0 f0, N n, I1 f1)
-{
-	while (n) {
-		*f1++ = *f0++;
-		--n;
-	}
-	return std::make_pair(f0, f1);
-}
-
-void Gap_buffer::gap_move(iterator i)
-{
-	size_type index = i.index;
-	size_type n = gap_begin - data_begin;
-	if (index < n)
-		std::tie(gap_begin, gap_end) = move_backward_n(gap_begin, n - index, gap_end);
-	else
-		std::tie(gap_end, gap_begin) = move_n(gap_end, index - n, gap_begin);
-}
-
 void Gap_buffer::insert(iterator i, size_type n, char c)
 {
+	std::tie(gap_begin, gap_end) = move_gap(i.ptr, gap_begin, gap_end);
 	if (static_cast<size_type>(gap_end - gap_begin) < n)
 		reserve(size() + n);
-	gap_move(i);
 	gap_begin = std::fill_n(gap_begin, n, c);
 }
 
 void Gap_buffer::erase(iterator i, size_type n)
 {
-	gap_move(i);
+	std::tie(gap_begin, gap_end) = move_gap(i.ptr, gap_begin, gap_end);
 	gap_end += n;
 }
 
 void Gap_buffer::erase(iterator f, iterator l)
 {
-	gap_move(f);
-	gap_end += (l.index - f.index);
+	std::tie(gap_begin, gap_end) = move_gap(f.ptr, gap_begin, gap_end);
+	gap_end += l - f;
 }

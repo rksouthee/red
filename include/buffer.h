@@ -4,11 +4,12 @@
 #include <windows.h>
 #include <string>
 #include "gap_buffer.h"
+#include "iterator.h"
 
 struct Buffer {
 	using Buffer_storage = Gap_buffer;
 	using size_type = Buffer_storage::size_type;
-	using iterator = Buffer_storage::iterator;
+	using iterator = Indexed_iterator;
 
 	std::string name;
 	Buffer_storage contents;

@@ -2,12 +2,12 @@
 
 Buffer::iterator Buffer::begin()
 {
-	return contents.begin();
+	return Indexed_iterator(contents, 0);
 }
 
 Buffer::iterator Buffer::end()
 {
-	return contents.end();
+	return Indexed_iterator(contents, contents.size());
 }
 
 bool Buffer::write_file(HANDLE file_handle)
@@ -32,17 +32,18 @@ bool Buffer::write_file(HANDLE file_handle)
 void Buffer::insert(iterator i, char c)
 {
 	modified = true;
-	contents.insert(i, 1, c);
+	contents.insert(contents.begin() + i.index, 1, c);
 }
 
 void Buffer::erase(iterator i)
 {
 	modified = true;
-	contents.erase(i, 1);
+	contents.erase(contents.begin() + i.index, 1);
 }
 
 void Buffer::erase(iterator f, iterator l)
 {
 	modified = true;
-	contents.erase(f, l);
+	auto first = contents.begin();
+	contents.erase(first + f.index, first + l.index);
 }

@@ -3,40 +3,40 @@
 
 #include <cstddef>
 #include <iterator>
-#include <string>
+#include "gap_buffer.h"
 
 /*
- * Stable string iterator
+ * Stable iterator to a Gap_buffer
  */
-struct String_iterator {
+struct Indexed_iterator {
 	using value_type = char;
 	using reference = value_type&;
 	using pointer = value_type*;
 	using difference_type = std::ptrdiff_t;
-	using iterator_category = std::bidirectional_iterator_tag;
+	using iterator_category = std::bidirectional_iterator_tag; // TODO: Use random_access_iterator_tag?
 
-	std::string* data;
-	std::string::size_type index;
+	Gap_buffer* data;
+	Gap_buffer::size_type index;
 
-	iterator() = default;
-	iterator(std::string& data, std::string::size_type index);
+	Indexed_iterator() = default;
+	Indexed_iterator(Gap_buffer& data, Gap_buffer::size_type index);
 
-	friend bool operator==(const iterator& x, const iterator& y);
-	friend bool operator!=(const iterator& x, const iterator& y);
+	friend bool operator==(const Indexed_iterator& x, const Indexed_iterator& y);
+	friend bool operator!=(const Indexed_iterator& x, const Indexed_iterator& y);
 
-	friend bool operator <(const iterator& x, const iterator& y);
-	friend bool operator >(const iterator& x, const iterator& y);
-	friend bool operator<=(const iterator& x, const iterator& y);
-	friend bool operator>=(const iterator& x, const iterator& y);
+	friend bool operator <(const Indexed_iterator& x, const Indexed_iterator& y);
+	friend bool operator >(const Indexed_iterator& x, const Indexed_iterator& y);
+	friend bool operator<=(const Indexed_iterator& x, const Indexed_iterator& y);
+	friend bool operator>=(const Indexed_iterator& x, const Indexed_iterator& y);
 
 	reference operator*() const;
 	pointer operator->() const;
 
-	iterator& operator++();
-	iterator operator++(int);
+	Indexed_iterator& operator++();
+	Indexed_iterator operator++(int);
 
-	iterator& operator--();
-	iterator operator--(int);
+	Indexed_iterator& operator--();
+	Indexed_iterator operator--(int);
 };
 
 #endif

@@ -1,75 +1,76 @@
+#include "iterator.h"
 #include <cassert>
 
-String_iterator::iterator(std::string& data, std::string::size_type index) :
+Indexed_iterator::Indexed_iterator(Gap_buffer& data, Gap_buffer::size_type index) :
 	data(&data),
 	index(index)
 {
 }
 
-bool operator==(const String_iterator& x, const iterator& y)
+bool operator==(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	assert(x.data == y.data);
 	return x.index == y.index;
 }
 
-bool operator!=(const String_iterator& x, const iterator& y)
+bool operator!=(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	return !(x == y);
 }
 
-bool operator <(const String_iterator& x, const iterator& y)
+bool operator <(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	assert(x.data == y.data);
 	return x.index < y.index;
 }
 
-bool operator >(const String_iterator& x, const iterator& y)
+bool operator >(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	return y < x;
 }
 
-bool operator<=(const String_iterator& x, const iterator& y)
+bool operator<=(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	return !(y < x);
 }
 
-bool operator>=(const String_iterator& x, const iterator& y)
+bool operator>=(const Indexed_iterator& x, const Indexed_iterator& y)
 {
 	return !(x < y);
 }
 
-String_iterator::reference iterator::operator*() const
+Indexed_iterator::reference Indexed_iterator::operator*() const
 {
 	return (*data)[index];
 }
 
-String_iterator::pointer iterator::operator->() const
+Indexed_iterator::pointer Indexed_iterator::operator->() const
 {
 	return &**this;
 }
 
-String_iterator& iterator::operator++()
+Indexed_iterator& Indexed_iterator::operator++()
 {
 	++index;
 	return *this;
 }
 
-String_iterator iterator::operator++(int)
+Indexed_iterator Indexed_iterator::operator++(int)
 {
-	String_iterator tmp = *this;
+	Indexed_iterator tmp = *this;
 	++*this;
 	return tmp;
 }
 
-String_iterator& iterator::operator--()
+Indexed_iterator& Indexed_iterator::operator--()
 {
 	--index;
 	return *this;
 }
 
-String_iterator iterator::operator--(int)
+Indexed_iterator Indexed_iterator::operator--(int)
 {
-	String_iterator tmp = *this;
+	Indexed_iterator tmp = *this;
 	--*this;
 	return tmp;
 }

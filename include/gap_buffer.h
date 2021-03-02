@@ -9,7 +9,7 @@ public:
 	using value_type = char;
 	using reference = value_type&;
 	using size_type = std::size_t;
-	struct iterator;
+	class iterator;
 
 private:
 	char* data_begin = nullptr;
@@ -45,19 +45,23 @@ public:
 	const char* begin1() const;
 	const char* end1() const;
 
-	struct iterator {
+	class iterator {
+	public:
 		using value_type = char;
 		using reference = value_type&;
 		using pointer = value_type*;
 		using difference_type = std::ptrdiff_t;
-		using iterator_category = std::bidirectional_iterator_tag;
+		using iterator_category = std::random_access_iterator_tag;
 
-		Gap_buffer* buffer;
-		Gap_buffer::size_type index;
+	private:
+		friend class Gap_buffer;
+		char* ptr;
+		char* gap_begin;
+		char* gap_end;
 
+	public:
 		iterator() = default;
-
-		iterator(Gap_buffer& buffer, Gap_buffer::size_type index);
+		iterator(char* ptr, char* gap_begin, char* gap_end);
 
 		friend bool operator==(const iterator& x, const iterator& y);
 		friend bool operator!=(const iterator& x, const iterator& y);
@@ -72,9 +76,16 @@ public:
 
 		iterator& operator++();
 		iterator operator++(int);
+		iterator& operator+=(difference_type n);
+		friend iterator operator+(iterator x, difference_type n);
+
+		reference operator[](difference_type n) const;
 
 		iterator& operator--();
 		iterator operator--(int);
+		iterator& operator-=(difference_type n);
+		friend iterator operator-(iterator x, difference_type n);
+		friend difference_type operator-(const iterator& x, const iterator& y);
 	};
 
 	iterator begin();
@@ -85,9 +96,6 @@ public:
 	void insert(iterator i, size_type n, char c);
 	void erase(iterator i, size_type n);
 	void erase(iterator f, iterator l);
-
-private:
-	void gap_move(iterator i);
 };
 
 #endif
