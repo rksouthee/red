@@ -6,6 +6,31 @@
 
 /*
  * move_gap
+ *
+ * Moves a gap defined by the range [gap_begin, gap_end), we don't care about
+ * the data in this range, and we want to move the gap to a new position
+ * defined by iter while maintaining the relative order of the elements not in
+ * the gap.
+ *
+ * if (iter < gap_begin) {
+ * abcdefghijk________________________________lmnopqrstuvwxyz
+ *     ^      ^                               ^
+ *     iter   gap_begin                       gap_end
+ * pair = move_gap(iter, gap_begin, gap_end) ==>
+ * abcd________________________________efghijklmnopqrstuvwxyz
+ *     ^                               ^
+ *     pair.first                      pair.second
+ *
+ * } else {
+ *
+ * abcdefghijk________________________________lmnopqrstuvwxyz
+ *            ^                               ^       ^
+ *            gap_begin                       gap_end iter
+ * pair = move_gap(iter, gap_begin, gap_end) ==>
+ * abcdefghijklmnopqrs________________________________tuvwxyz
+ *                    ^                               ^
+ *                    pair.first                      pair.second
+ * }
  */
 template <typename I>
 // requires BidirectionalIterator(I)
