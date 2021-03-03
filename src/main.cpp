@@ -35,6 +35,7 @@ static void handle_window_buffer_size_event(Editor_state& editor, const WINDOW_B
 
 static void editor_initialize(Editor_state& editor)
 {
+	editor.buffer.modified = false;
 	editor.view.buffer = &editor.buffer;
 	Screen_dimension size = screen_dimension();
 	editor.view.width = size.width;
