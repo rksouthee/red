@@ -24,6 +24,7 @@ static Bind normal_binds[] = {
 	{ VkKeyScanA('A'), insert_after_line },
 	{ VkKeyScanA('o'), open_line_after },
 	{ VkKeyScanA('O'), open_line_before },
+	{ VkKeyScanA('d'), start_delete_mode },
 	{ VkKeyScanA('D'), delete_line },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
@@ -60,6 +61,10 @@ static Bind insert_binds[] = {
 	{ CONTROL | VkKeyScanA('i'), insert_tab },
 	{ VK_BACK, backspace },
 	{ CONTROL | VkKeyScanA('t'), indent_line },
+};
+
+static Bind delete_binds[] = {
+	{ VkKeyScanA('d'), delete_line },
 };
 
 bool evaluate(Editor_state& editor, const Key_input& input)
@@ -384,4 +389,21 @@ COMMAND_FUNCTION(indent_line)
 	view.buffer->insert(line_begin, '\t');
 	++view.cursor;
 	view.column_desired = -1;
+}
+
+static void delete_mode(Editor_state& editor, bool& should_exit)
+{
+	Key_input input = wait_for_key();
+	auto iter = std::find_if(std::begin(delete_binds), std::end(delete_binds), [&input] (const Bind& bind) -> bool {
+		return bind.key == input.key;
+	});
+
+	if (iter != std::end(delete_binds)) {
+		iter->cmd(editor, input, should_exit);
+	}
+}
+
+COMMAND_FUNCTION(start_delete_mode)
+{
+	delete_mode(editor, should_exit);
 }

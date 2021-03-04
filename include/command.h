@@ -55,5 +55,6 @@ COMMAND_FUNCTION(open_line_before);
 COMMAND_FUNCTION(delete_line);
 COMMAND_FUNCTION(replace_line);
 COMMAND_FUNCTION(indent_line);
+COMMAND_FUNCTION(start_delete_mode);
 
 #endif
