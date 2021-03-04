@@ -25,7 +25,7 @@ static Bind normal_binds[] = {
 	{ VkKeyScanA('o'), open_line_after },
 	{ VkKeyScanA('O'), open_line_before },
 	{ VkKeyScanA('d'), start_delete_mode },
-	{ VkKeyScanA('D'), delete_line },
+	{ VkKeyScanA('D'), delete_to_end_of_line },
 	{ VK_OEM_2, search_forward },
 	{ VK_HOME, goto_beginning_of_line },
 	{ CONTROL | VK_HOME, goto_beginning_of_file },
@@ -362,13 +362,22 @@ COMMAND_FUNCTION(open_line_before)
 	insert_mode(editor, should_exit);
 }
 
+COMMAND_FUNCTION(delete_to_end_of_line)
+{
+	View& view = editor.view;
+	Buffer::iterator line_end = std::find(view.cursor, view.buffer->end(), '\n');
+	view.buffer->erase(view.cursor, line_end);
+}
+
 COMMAND_FUNCTION(delete_line)
 {
 	View& view = editor.view;
 	Buffer::iterator line_begin = find_backward(view.buffer->begin(), view.cursor, '\n');
 	Buffer::iterator line_end = std::find(view.cursor, view.buffer->end(), '\n');
-	view.buffer->erase(line_begin, line_end);
-	view.cursor = line_begin;
+	if (line_end != view.buffer->end())
+		++line_end;
+	view.cursor = view.buffer->erase(line_begin, line_end);
+	assert(view.cursor == view.buffer->begin() || *(std::prev(view.cursor)) == '\n');
 	view.column_desired = 0;
 }
 
