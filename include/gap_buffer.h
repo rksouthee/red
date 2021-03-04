@@ -95,7 +95,7 @@ public:
 
 	void insert(iterator i, size_type n, char c);
 	void erase(iterator i, size_type n);
-	void erase(iterator f, iterator l);
+	iterator erase(iterator f, iterator l);
 };
 
 #endif

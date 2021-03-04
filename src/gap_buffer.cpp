@@ -399,8 +399,9 @@ void Gap_buffer::erase(iterator i, size_type n)
 	gap_end += n;
 }
 
-void Gap_buffer::erase(iterator f, iterator l)
+Gap_buffer::iterator Gap_buffer::erase(iterator f, iterator l)
 {
 	std::tie(gap_begin, gap_end) = move_gap(f.ptr, gap_begin, gap_end);
 	gap_end += l - f;
+	return iterator(gap_end, gap_begin, gap_end);
 }

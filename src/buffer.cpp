@@ -41,9 +41,10 @@ void Buffer::erase(iterator i)
 	contents.erase(contents.begin() + i.index, 1);
 }
 
-void Buffer::erase(iterator f, iterator l)
+Buffer::iterator Buffer::erase(iterator f, iterator l)
 {
 	modified = true;
 	auto first = contents.begin();
-	contents.erase(first + f.index, first + l.index);
+	auto last = contents.erase(first + f.index, first + l.index);
+	return iterator(contents, last - contents.begin());
 }
