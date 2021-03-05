@@ -26,7 +26,7 @@ static Bind normal_binds[] = {
 	{ VkKeyScanA('O'), open_line_before },
 	{ VkKeyScanA('d'), start_delete_mode },
 	{ VkKeyScanA('D'), delete_to_end_of_line },
-	{ VK_OEM_2, search_forward },
+	{ VkKeyScanA('/'), search_forward },
 	{ VK_HOME, goto_beginning_of_line },
 	{ CONTROL | VK_HOME, goto_beginning_of_file },
 	{ VK_END, goto_end_of_line },
