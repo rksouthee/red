@@ -317,8 +317,22 @@ COMMAND_FUNCTION(insert_self)
 
 COMMAND_FUNCTION(insert_newline)
 {
-	editor.buffer.insert(editor.view.cursor, '\n');
+	View& view = editor.view;
+	Buffer::iterator start_of_line = ::find_backward(view.buffer->begin(), view.cursor, '\n');
+	int tab_count = 0;
+	while (start_of_line != view.buffer->end() && *start_of_line == '\t') {
+		++tab_count;
+		++start_of_line;
+	}
+
+	view.buffer->insert(view.cursor, '\n');
 	++editor.view.cursor;
+
+	while (tab_count) {
+		view.buffer->insert(view.cursor, '\t');
+		++view.cursor;
+		--tab_count;
+	}
 }
 
 COMMAND_FUNCTION(backspace)
