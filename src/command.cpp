@@ -14,6 +14,7 @@ struct Bind {
 
 static Bind normal_binds[] = {
 	{ VkKeyScanA('h'), backward_char },
+	{ VkKeyScanA('b'), backward_word },
 	{ VkKeyScanA('j'), forward_line },
 	{ VkKeyScanA('k'), backward_line },
 	{ VkKeyScanA('l'), forward_char },
@@ -165,6 +166,39 @@ COMMAND_FUNCTION(backward_char)
 		--view.cursor;
 		view.column_desired = -1;
 	}
+}
+
+template <typename I, typename P>
+// requires BidirectionalIterator(I) && UnaryPredicate(P, ValueType(I))
+I find_if_backward(I f, I l, P p)
+{
+	while (l != f) {
+		--l;
+		if (p(*l))
+			return std::next(l);
+	}
+	return f;
+}
+
+template <typename I, typename P>
+// requires BidirectionalIterator(I) && UnaryPredicate(P, ValueType(I))
+I find_if_not_backward(I f, I l, P p)
+{
+	while (l != f) {
+		--l;
+		if (!p(*l))
+			return std::next(l);
+	}
+	return f;
+}
+
+COMMAND_FUNCTION(backward_word)
+{
+	View& view = editor.view;
+	const auto pred = [] (char x) -> bool { return std::isalnum(x); };
+	view.cursor = ::find_if_backward(view.buffer->begin(), view.cursor, pred);
+	view.cursor = ::find_if_not_backward(view.buffer->begin(), view.cursor, pred);
+	view.column_desired = -1;
 }
 
 static int get_column(Buffer::iterator first, Buffer::iterator last)

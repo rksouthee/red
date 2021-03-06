@@ -28,6 +28,7 @@ bool evaluate(Editor_state& editor, const Key_input& input);
 COMMAND_FUNCTION(none);
 
 COMMAND_FUNCTION(backward_char);
+COMMAND_FUNCTION(backward_word);
 COMMAND_FUNCTION(forward_line);
 COMMAND_FUNCTION(backward_line);
 COMMAND_FUNCTION(goto_beginning_of_line);
