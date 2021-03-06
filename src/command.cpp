@@ -201,6 +201,15 @@ COMMAND_FUNCTION(backward_word)
 	view.column_desired = -1;
 }
 
+/*
+ * get_column
+ *
+ * Finds the 0-based value of the column of the line that `last` points to.
+ * `first` could point to the beginning of the buffer to prevent going out of
+ * range.  When counting the column we take into consideration tabs, a tab
+ * character rounds the column to the next multiple of 8. Other characters in
+ * the buffer are considered to have a width of 1.
+ */
 static int get_column(Buffer::iterator first, Buffer::iterator last)
 {
 	first = find_backward(first, last, '\n');
@@ -215,6 +224,15 @@ static int get_column(Buffer::iterator first, Buffer::iterator last)
 	return column;
 }
 
+/*
+ * set_column
+ *
+ * Returns the iterator that would point to the desired `column` on the given
+ * line starting at `first`. We need want to make sure that we find the column
+ * for the current line and that we don't go out bounds. Similar to
+ * `get_column` tabs round to the next multiple of 8, and other characters have
+ * a width of 1.
+ */
 static Buffer::iterator set_column(Buffer::iterator first, Buffer::iterator last, int column)
 {
 	int current = 0;
