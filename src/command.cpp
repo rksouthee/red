@@ -152,13 +152,9 @@ COMMAND_FUNCTION(forward_char)
 COMMAND_FUNCTION(forward_word)
 {
 	View& view = editor.view;
-	if (view.cursor == view.buffer->end())
-		return;
-
-	const auto pred = [] (char x) -> bool { return std::isalpha(x); };
-	Buffer::iterator iter = std::find_if_not(view.cursor, view.buffer->end(), pred);
-	iter = std::find_if(iter, view.buffer->end(), pred);
-	view.cursor = iter;
+	const auto pred = [] (char x) -> bool { return std::isalnum(x); };
+	view.cursor = std::find_if_not(view.cursor, view.buffer->end(), pred);
+	view.cursor = std::find_if(view.cursor, view.buffer->end(), pred);
 	view.column_desired = -1;
 }
 
