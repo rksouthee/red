@@ -62,6 +62,7 @@ static Bind insert_binds[] = {
 	{ CONTROL | VkKeyScanA('i'), insert_tab },
 	{ VK_BACK, backspace },
 	{ CONTROL | VkKeyScanA('t'), indent_line },
+	{ CONTROL | VkKeyScanA('d'), deindent_line },
 };
 
 static Bind delete_binds[] = {
@@ -460,6 +461,17 @@ COMMAND_FUNCTION(indent_line)
 	view.buffer->insert(line_begin, '\t');
 	++view.cursor;
 	view.column_desired = -1;
+}
+
+COMMAND_FUNCTION(deindent_line)
+{
+	View& view = editor.view;
+	Buffer::iterator line_begin = ::find_backward(view.buffer->begin(), view.cursor, '\n');
+	if (line_begin != view.buffer->end() && *line_begin == '\t') {
+		view.buffer->erase(line_begin);
+		--view.cursor;
+		view.column_desired = -1;
+	}
 }
 
 static void delete_mode(Editor_state& editor, bool& should_exit)
