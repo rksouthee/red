@@ -36,6 +36,8 @@ static Bind normal_binds[] = {
 	{ VkKeyScanA('0'), goto_beginning_of_line },
 	{ VkKeyScanA('$'), goto_end_of_line },
 	{ VkKeyScanA('S'), replace_line },
+	{ CONTROL | VkKeyScanA('e'), scroll_down },
+	{ CONTROL | VkKeyScanA('y'), scroll_up },
 };
 
 static Bind ctrlx_binds[] = {
@@ -489,4 +491,67 @@ static void delete_mode(Editor_state& editor, bool& should_exit)
 COMMAND_FUNCTION(start_delete_mode)
 {
 	delete_mode(editor, should_exit);
+}
+
+/*
+ * scroll_down (similar to Vim command)
+ *
+ * We first count the number of lines between the line at the top of the screen
+ * and the cursor position. We then attempt to move the top line forward by one
+ * line, this might not be possible if we are on the last line of the file in
+ * which case we don't need to do anything. Once we've advanced the top line we
+ * then try to keep the cursor in the same position by moving n - 1 lines where
+ * n is the number of lines we counted before.
+ */
+COMMAND_FUNCTION(scroll_down)
+{
+	using N = typename std::iterator_traits<Buffer::iterator>::difference_type;
+
+	View& view = editor.view;
+	N lines = std::count(view.top_line, view.cursor, '\n');
+	view.top_line = std::find(view.top_line, view.buffer->end(), '\n');
+	if (view.top_line == view.buffer->end())
+		return;
+	++view.top_line;
+	view.cursor = view.top_line;
+
+	for (N i = 0; i < lines - 1; ++i) {
+		view.cursor = std::find(view.cursor, view.buffer->end(), '\n');
+		if (view.cursor == view.buffer->end())
+			break;
+		++view.cursor;
+	}
+}
+
+/*
+ * scroll_up (similar to Vim command)
+ *
+ * We count the number of lines between the line at the top of screen and the
+ * cursor position. We then move the top line to the previous line, (might not
+ * be possible if we are on the first line of the file). Once we've moved the
+ * top line, we want to maintain the cursor position so we we'll try to move
+ * the cursor n + 1 lines where n is the number of lines we counted earlier.
+ */
+COMMAND_FUNCTION(scroll_up)
+{
+	using N = typename std::iterator_traits<Buffer::iterator>::difference_type;
+
+	View& view = editor.view;
+	N lines = std::count(view.top_line, view.cursor, '\n');
+	view.top_line = ::find_backward(view.buffer->begin(), view.top_line, '\n');
+	if (view.top_line == view.buffer->begin())
+		return;
+	--view.top_line;
+	view.top_line = ::find_backward(view.buffer->begin(), view.top_line, '\n');
+	view.cursor = view.top_line;
+
+	// Make sure we stay on the screen
+	lines = std::min(static_cast<N>(view.height - 1), lines + 1);
+
+	for (N i = 0; i < lines; ++i) {
+		view.cursor = std::find(view.cursor, view.buffer->end(), '\n');
+		if (view.cursor == view.buffer->end())
+			break;
+		++view.cursor;
+	}
 }

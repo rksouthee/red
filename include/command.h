@@ -59,5 +59,7 @@ COMMAND_FUNCTION(indent_line);
 COMMAND_FUNCTION(start_delete_mode);
 COMMAND_FUNCTION(delete_to_end_of_line);
 COMMAND_FUNCTION(deindent_line);
+COMMAND_FUNCTION(scroll_down);
+COMMAND_FUNCTION(scroll_up);
 
 #endif
