@@ -30,30 +30,46 @@ where commands can be entered.
 
 ### Normal Commands
 
-| Key | Command | Description |
-| --- | ------- | ----------- |
-| H   | backward char | Moves the cursor to the previous character. Wraps to end of previous line if at the beginning |
-| J   | forward line | Moves the cursor to next line. Does nothing when on the last line |
-| K   | backward line | Moves the cursor to the previous line. Moves to the beginning when on the first line |
-| L   | forward char | Moves the cursor forward a character. Wraps to the next line if at the end of a line |
-| W | forward word | Moves forward a word |
-| ^X ^S | save | Saves the current file. |
-| ^X ^C | quit | Exits the application. If unsaved changes use multiple times to force quit |
-| ^X ^F | open | Opens a new file |
-| / | search | Searches for a query in the buffer |
-| Home | | Moves to the beginning of the line |
-| ^Home | | Moves to the beginning of the file |
-| End | | Moves to the end of the line |
-| ^End | | Moves to the end of the file |
+A command such as `^x` means pressing Ctrl and x at the same time.
+
+| Key | Command |
+| --- | ------- |
+| l | Forward character |
+| h | Backward character |
+| w | Next word |
+| b | Previous word |
+| 0 | Beginning of line |
+| Home | Beginning of line |
+|^Home | Beginning of file |
+| $ | End of line |
+| End | End of line |
+| ^End | End of file |
+| j | Next line |
+| k | Previous line |
+| i | Insert before cursor |
+| I | Insert at beginning of line |
+| a | Insert after cursor |
+| A | Insert at end of line |
+| o | Open line below |
+| O | Open line above |
+| S | Replace line |
+| D | Delete to end of line |
+| dd | Delete line |
+| / | Search forward |
+| ^e | Scroll down |
+| ^y | Scroll up |
+| ^x ^s | Write file |
+| ^x ^c | Quit |
+| ^x ^f | Find file |
 
 ## Insert Commands
 
-| Key | Command | Description |
-| --- | ------- | ----------- |
-| Esc | leave insert | Exits insert mode and returns to normal mode |
-| Enter | newline | Inserts a newline character into the buffer |
-| Backspace | backspace | Erases the previous character |
-| Tab | insert tab | Inserts a tab character |
+| Key | Command |
+| --- | ------- |
+| Esc | Leave insert mode |
+| ^[  | Leave insert mode |
+| ^t  | Indent line |
+| ^d  | Deindent line |
 
 ## Todo
 
