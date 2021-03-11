@@ -13,6 +13,8 @@ add_executable(red
 	src/prompt.cpp
 	src/command.cpp
 	src/iterator.cpp
+
+	src/red.natvis
 	)
 target_include_directories(red PRIVATE include)
 target_compile_definitions(red PUBLIC -DNOMINMAX)

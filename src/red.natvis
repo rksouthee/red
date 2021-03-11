@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="Gap_buffer">
+		<DisplayString>"{data_begin,[gap_begin-data_begin]sb}{gap_end,[data_end-gap_end]sb}"</DisplayString>
+		<!-- Have a view for the left and right side of the gap -->
+	</Type>
+</AutoVisualizer>
