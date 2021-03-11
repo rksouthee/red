@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 	<Type Name="Gap_buffer">
+		<Intrinsic Name="size" Expression="(gap_begin - data_begin) + (data_end - gap_end)" />
+		<Intrinsic Name="capacity" Expression="data_end - data_begin" />
 		<DisplayString>"{data_begin,[gap_begin-data_begin]sb}{gap_end,[data_end-gap_end]sb}"</DisplayString>
-		<!-- Have a view for the left and right side of the gap -->
+		<Expand>
+			<Item Name="[size]" ExcludeView="simple">size()</Item>
+			<Item Name="[capacity]" ExcludeView="simple">capacity()</Item>
+			<ArrayItems>
+				<Size>gap_begin - data_begin</Size>
+				<ValuePointer>data_begin</ValuePointer>
+			</ArrayItems>
+			<ArrayItems>
+				<Size>data_end - gap_end</Size>
+				<ValuePointer>gap_end</ValuePointer>
+			</ArrayItems>
+		</Expand>
 	</Type>
 </AutoVisualizer>
