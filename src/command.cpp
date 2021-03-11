@@ -53,7 +53,7 @@ COMMAND_FUNCTION(ctrlx_command)
 		return bind.key == new_input.key;
 	});
 	if (iter != std::end(ctrlx_binds))
-		iter->cmd(editor, new_input, should_exit);
+		iter->cmd(editor, new_input, should_exit, 0);
 }
 
 static Bind insert_binds[] = {
@@ -71,14 +71,29 @@ static Bind delete_binds[] = {
 	{ VkKeyScanA('d'), delete_line },
 };
 
-bool evaluate(Editor_state& editor, const Key_input& input)
+bool evaluate(Editor_state& editor, Key_input input)
 {
+	int count = 0;
+	if (input.ascii >= '1' && input.ascii <= '9') {
+		count = (input.ascii - '0');
+		while (true) {
+			input = wait_for_key();
+			if (input.ascii >= '0' && input.ascii <= '9') {
+				// TODO: guard against overflow
+				count *= 10;
+				count += (input.ascii - '0');
+			} else {
+				break;
+			}
+		}
+	}
+
 	auto iter = std::find_if(std::begin(normal_binds), std::end(normal_binds), [&input] (const Bind& bind) -> bool {
 		return bind.key == input.key;
 	});
 	bool should_exit = false;
 	if (iter != std::end(normal_binds)) {
-		iter->cmd(editor, input, should_exit);
+		iter->cmd(editor, input, should_exit, count);
 		display_refresh(editor.view);
 	}
 	return should_exit;
@@ -147,8 +162,11 @@ COMMAND_FUNCTION(search_forward)
 COMMAND_FUNCTION(forward_char)
 {
 	View& view = editor.view;
+
 	if (view.cursor != view.buffer->end()) {
-		++view.cursor;
+		do {
+			++view.cursor;
+		} while (count-- && view.cursor != view.buffer->end());
 		view.column_desired = -1;
 	}
 }
@@ -365,12 +383,12 @@ static void insert_mode(Editor_state& editor, bool& should_exit)
 			return bind.key == input.key;
 		});
 		if (iter == std::end(insert_binds)) {
-			insert_self(editor, input, should_exit);
+			insert_self(editor, input, should_exit, 0);
 		} else if (iter->cmd == leave_insert_mode) {
-			iter->cmd(editor, input, should_exit);
+			iter->cmd(editor, input, should_exit, 0);
 			break;
 		} else {
-			iter->cmd(editor, input, should_exit);
+			iter->cmd(editor, input, should_exit, 0);
 		}
 		display_refresh(editor.view);
 	}
@@ -484,7 +502,7 @@ static void delete_mode(Editor_state& editor, bool& should_exit)
 	});
 
 	if (iter != std::end(delete_binds)) {
-		iter->cmd(editor, input, should_exit);
+		iter->cmd(editor, input, should_exit, 0);
 	}
 }
 
