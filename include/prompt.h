@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-enum User_response {
+enum class User_response {
 	yes, no, cancel
 };
 

@@ -7,7 +7,7 @@ int main()
 	x.insert(x.end(), 16, ' ');
 	// fill with: "abcdefghijklmnop"
 	for (char c = 'a'; c < 'a' + 16; ++c)
-		x[c - 'a'] = c;
+		x[std::size_t{c - 'a'}] = c;
 
 	Gap_buffer::iterator iter = x.begin();
 	const char* expected;
