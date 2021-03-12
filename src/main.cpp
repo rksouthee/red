@@ -80,9 +80,16 @@ int main(int argc, char **argv)
 
 	// Restore the original title
 	const DWORD title_size = 64 * 1024;
-	char console_title[title_size];
-	GetConsoleOriginalTitle(console_title, title_size);
-	SetConsoleTitle(console_title);
+	// Dynamically allocate string rather than using stack space, Error C6262
+	std::string console_title(title_size, '\0');
+	/*
+	 * XXX: This will restore the title as itw as when the console was opened,
+	 * so if the title was modified before starting the editor, we are going
+	 * to ignore that title. We may want to call GetConsoleTitle before we
+	 * set the title and restore that when we exit
+	 */
+	GetConsoleOriginalTitle(&console_title[0], title_size);
+	SetConsoleTitle(console_title.data());
 
 	return last_error;
 }
