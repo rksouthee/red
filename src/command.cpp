@@ -182,9 +182,13 @@ COMMAND_FUNCTION(forward_word)
 
 COMMAND_FUNCTION(backward_char)
 {
+	if (count == 0)
+		count = 1;
 	View& view = editor.view;
 	if (view.cursor != view.buffer->begin()) {
-		--view.cursor;
+		do {
+			--view.cursor;
+		} while (--count && view.cursor != view.buffer->begin());
 		view.column_desired = -1;
 	}
 }
