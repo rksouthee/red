@@ -14,6 +14,18 @@ add_executable(red
 	src/command.cpp
 	src/iterator.cpp
 
+	include/buffer.h
+	include/command.h
+	include/display.h
+	include/editor.h
+	include/file.h
+	include/gap_buffer.h
+	include/input.h
+	include/iterator.h
+	include/prompt.h
+	include/screen.h
+	include/utility.h
+
 	src/red.natvis
 	)
 target_include_directories(red PRIVATE include)
